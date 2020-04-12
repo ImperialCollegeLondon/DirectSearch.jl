@@ -3,6 +3,9 @@ uuid = "9d7617aa-e122-4445-bdd0-98866dcb605d"
 authors = ["EdwardStables <edward.stables1198@gmail.com>"]
 version = "0.1.0"
 
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+
 [compat]
 julia = "1.3.1"
 
