@@ -36,9 +36,9 @@ const DS = DirectSearch
 
     #= Audet & Dennis 2006 pg. 203 generation of matrix B =#
     @testset "B_generation" begin
-        l = 3; N = 4
+        l = 3.0; N = 4
         L = DS.L_generation(N, l)
-        b, I = DS.b_l_generation(Dict{Float64,Vector{Float64}}(), Dict{Float64,Int64}(), l, N)
+        b, I = DS.b_l_generation(Dict{T,Vector{T}}(), Dict{T,Int64}(), l, N)
         p = shuffle!(setdiff(1:N, I))
         
         B = DS.B_generation(N, I, b, L, perm=p)
