@@ -101,7 +101,9 @@ Update h_max according to the LTMADS default in eqn 2.5, Audet & Dennis 2009
 """
 function h_max_update(c::ConstraintCollection, result::IterationOutcome)
     if result == Improving
-        #@show [h for h in c.h_max_store if h < c.h_max]
+        h_maxes = filter(h->h<c.h_max, c.h_max_store)
+        isempty(h_maxes) && return
+        c.h_max = max(h_maxes...)
     end
     #Otherwise h_max remains as it was
 end
@@ -207,11 +209,9 @@ function ConstraintEvaluation(constraints::Constraints{T}, x::Vector{T})::Tuple{
     eval_result = Feasible
     for collection in constraints.collections
         collection.ignore && continue
-        feasibility = ConstraintCollectionEvaluation(collection, x) 
+        eval_result = ConstraintCollectionEvaluation(collection, x) 
         # A single completely infeasible result (h(x) > 0 for extreme, or h(x) > h_max for prog) means invalid
-        feasibility == StrongInfeasible && return (StrongInfeasible, convert(T,0.0))
-        # Either kept as Feasible, or updated to WeakInfeasible
-        eval_result = feasibility
+        eval_result == StrongInfeasible && return StrongInfeasible, convert(T,0.0)
     end
     return eval_result, sum([isempty(p.h_max_store) ? 0 : p.h_max_store[end] for p in constraints.collections])
 end
@@ -235,10 +235,9 @@ returned. If the value is 0.0 then `Feasible` is returned. Otherwise `WeakInfeas
 function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
                                         x::Vector{T})::ConstraintOutcome where T
     sum = 0.0
-    agg = collection.result_aggregate
     for c in collection.constraints
         c.ignore && continue
-        sum += agg(c.f(x))
+        sum += collection.result_aggregate(c.f(x))
     end
     push!(collection.h_max_store, sum)
     if sum <= collection.h_max 
@@ -260,7 +259,8 @@ function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,Extre
                                         x::Vector{T})::ConstraintOutcome where T
     for c in collection.constraints
         c.ignore && continue
-        c.f(x) || return StrongInfeasible
+        v = c.f(x)
+        v < convert(T,0.0) || v == true || return StrongInfeasible
     end
 
     return Feasible
