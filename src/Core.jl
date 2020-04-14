@@ -225,9 +225,7 @@ function Optimize!(p::DSProblem)
             result = Poll(p)
         end
 
-        if result != Unsuccessful
-            CachePush(p, p.x, p.x_cost)
-        end
+        CachePush(p)
 
         #pass the result of search/poll to update
         MeshUpdate!(p, result)

@@ -25,6 +25,20 @@ end
 Add point `x` and its cost `cost` to the cache of `p`. 
 """
 CachePush(p::AbstractProblem, x::Vector, cost) = CachePush(p.cache, x, cost)
+
+"""
+    CachePush(p::AbstractProblem)
+
+Add the feasible and infeasible incumbent points (assuming neither are `nothing`)
+to the cache.
+"""
+function CachePush(p::AbstractProblem)
+    p.x != nothing && CachePush(p.cache, p.x, p.x_cost)
+    p.i != nothing && CachePush(p.cache, p.i, p.i_cost)
+end
+
+
+
 #TODO order should be changed as it does not necessarily reflected order of incumbent,
 #only the other that points are evaluated
 function CachePush(c::PointCache{T}, x::Vector{T}, cost::T) where T
