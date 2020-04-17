@@ -123,6 +123,7 @@ mutable struct Mesh{T} <: AbstractMesh
 end
 
 MeshUpdate!(p::DSProblem, result::IterationOutcome) = MeshUpdate!(p.mesh, p.poll, result)
+(GetMeshSize(p::DSProblem{T})::T) where T = p.mesh.Δᵐ
 
 min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
 min_mesh_size(::DSProblem{T}) where T = eps(T)/2
@@ -217,7 +218,7 @@ function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 
     EvaluateInitialPoint(p)
     
-    while p.iteration < p.iteration_limit && p.mesh.Δᵐ >= min_mesh_size(p)
+    while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
 
         result = Search(p)
         #If search fails, run poll
@@ -237,7 +238,7 @@ function Optimize!(p::DSProblem)
     if p.iteration > p.iteration_limit 
         p.status = IterationLimit
     end
-    if p.mesh.Δᵐ <= min_mesh_size(p)
+    if GetMeshSize(p) <= min_mesh_size(p)
         p.status = PrecisionLimit
     end
 

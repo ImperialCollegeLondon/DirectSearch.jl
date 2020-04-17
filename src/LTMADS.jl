@@ -11,7 +11,9 @@ Return an empty LTMADS object.
 mutable struct LTMADS{T} <: AbstractPoll
     b::Dict{T,Vector{T}}
     i::Dict{T,Int}
-    function LTMADS{T}() where T
+    maximal_basis::Bool
+    LTMADS(;kwargs...) = LTMADS{Float64}(;kwargs...)
+    function LTMADS{T}(;maximal_basis=false) where T
         g = new()
         g.b = Dict{T, Vector{T}}()
         g.i = Dict{T, Int}()
@@ -37,13 +39,13 @@ end
 
 
 """
-    GenerateDirections(p::DSProblem, DG::LTMADS; maximal_basis=false)
+    GenerateDirections(p::DSProblem{T}, DG::LTMADS{T})::Vector{Vector{T}}
 
 Generates columns and forms a basis matrix for direction generation. 
 """
-function GenerateDirections(p::AbstractProblem, DG::LTMADS; maximal_basis=false)
+function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where T
     B = LT_basis_generation(p.mesh.Δᵐ, p.N, DG)
-    Dₖ = form_basis_matrix(p.N, B, maximal_basis)
+    Dₖ = form_basis_matrix(p.N, B, DG.maximal_basis)
 
     return Dₖ
 end

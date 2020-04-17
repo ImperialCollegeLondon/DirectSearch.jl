@@ -39,10 +39,10 @@ Finds points that are Δᵐ distance from any point in the mesh in a uniformly r
 function GenerateSearchPoints(p::DSProblem{T}, s::RandomSearch
                              )::Vector{Vector{T}} where T
     #TODO generate directions from the D mesh matrix
-    return GenerateSearchPoints(p.N, p.cache, p.mesh.Δᵐ, s)
+    return CacheRandomPoints(p.N, p.cache, p.mesh.Δᵐ, s)
 end
 
-function GenerateSearchPoints(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
+function CacheRandomPoints(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
                              )::Vector{Vector{T}} where T
     mesh_points = CacheRandomSample(c, s.M)     
 

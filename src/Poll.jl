@@ -8,11 +8,11 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     # Mostly implements definition 2.6 from Audet & Dennis 2009
 
     if !isnothing(p.x)
-        dirs = GenerateDirections(p, p.poll, maximal_basis=true)
+        dirs = GenerateDirections(p, p.poll)
         append!(points, [p.x + (p.mesh.Δᵐ*p.meshscale.*d) for d in eachcol(dirs)])
     end
     if !isnothing(p.i)
-        dirs = GenerateDirections(p, p.poll, maximal_basis=true)
+        dirs = GenerateDirections(p, p.poll)
         append!(points, [p.i + (p.mesh.Δᵐ*p.meshscale.*d) for d in eachcol(dirs)])
     end
     return points
