@@ -12,8 +12,8 @@ include("./Report.jl")
 
 #Include preset methods here
 include("./LTMADS.jl")
+include("./OrthoMADS.jl")
 #include("./GPS.jl")
-#include("./OrthoMADS.jl")
 
 include("./test_utils.jl")
 

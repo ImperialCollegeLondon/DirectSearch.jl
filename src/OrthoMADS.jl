@@ -10,8 +10,19 @@ Return an empty LTMADS object.
 """
 mutable struct OrthoMADS{T} <: AbstractPoll
     l::Int64
-    Δᵖ::Float64
-    Δᵐ::Float64
+	Δᵖmin::T
+	t₀::Int64
+    t::Int64
+    tmax::Int64
+    OrthoMADS(N) = OrthoMADS{Float64}(N)
+    function OrthoMADS{T}(N) where T l = 0
+        M = new()
+        #Initialise as the Nth prime
+        M.tmax = M.t = M.t₀ = prime(N)
+        M.l = 0
+        M.Δᵖmin = 1.0
+        return M
+    end
 end
 
 """
@@ -20,16 +31,28 @@ end
 Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
 barrier constraints with Audet & Dennis 2009 expression 2.4
 """
-function MeshUpdate!(m::Mesh{T}, ::LTMADS{T}, result::IterationOutcome) where T
+function MeshUpdate!(m::Mesh{T}, o::OrthoMADS{T}, result::IterationOutcome) where T
     if result == Unsuccessful
-        m.l += 1
+        o.l += 1
     elseif result == Dominating
-        m.l -= 1
+        o.l -= 1
     elseif result == Improving
-        m.l = m.l
+        o.l = o.l
     end
-    m.Δᵐ = min(1, 4.0^(-m.l))
-    m.Δᵖ = 2.0^(-m.l)
+
+    m.Δᵐ = min(1, 4.0^(-o.l))
+    m.Δᵖ = 2.0^(-o.l)
+
+    if m.Δᵖ < o.Δᵖmin
+        o.Δᵖmin = m.Δᵖ
+        o.t = o.l + o.t₀
+    else
+        o.t = 1 + o.tmax
+    end
+
+    if o.t > o.tmax
+        o.tmax = o.t
+    end
 end
 
 
@@ -38,8 +61,8 @@ end
 
 Generates columns and forms a basis matrix for direction generation. 
 """
-function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where T
-	h = Halton(p.N, t)    
+function GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T} where T
+	h = Halton(p.N, DG.t)    
 	q = AdjustedHalton(h, p.N, DG.l)
 	H = HouseholderTransform(q)
 	return hcat(H, -H)
