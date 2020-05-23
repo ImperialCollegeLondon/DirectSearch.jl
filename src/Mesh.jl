@@ -29,6 +29,21 @@ struct MeshPoint{T}
     end
 end
 
+mutable struct Mesh{T} <: AbstractMesh 
+    G::Matrix{T}
+    D::Matrix{T}
+    Δᵐ::T
+    # Override constructor for different default meshes for 
+    # different poll techniques.
+    function Mesh{T}(N, ::AbstractPoll) where T
+        mesh = new()
+        mesh.G = Matrix(I,N,N)
+        mesh.D = hcat(Matrix(I,N,N),-Matrix(I,N,N))
+        mesh.Δᵐ= convert(T, 1)
+        return mesh
+    end 
+end
+
 #= Mesh Update =#
 
 abstract type AbstractMeshUpdate end

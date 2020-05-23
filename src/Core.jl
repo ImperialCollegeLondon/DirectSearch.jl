@@ -107,21 +107,6 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     end
 end
 
-mutable struct Mesh{T} <: AbstractMesh 
-    G::Matrix{T}
-    D::Matrix{T}
-    Δᵐ::T
-    # Override constructor for different default meshes for 
-    # different poll techniques.
-    function Mesh{T}(N, ::AbstractPoll) where T
-        mesh = new()
-        mesh.G = Matrix(I,N,N)
-        mesh.D = hcat(Matrix(I,N,N),-Matrix(I,N,N))
-        mesh.Δᵐ= convert(T, 1)
-        return mesh
-    end 
-end
-
 MeshUpdate!(p::DSProblem, result::IterationOutcome) = MeshUpdate!(p.mesh, p.poll, result)
 (GetMeshSize(p::DSProblem{T})::T) where T = p.mesh.Δᵐ
 
