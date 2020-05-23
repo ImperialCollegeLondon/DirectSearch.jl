@@ -33,13 +33,16 @@ mutable struct Mesh{T} <: AbstractMesh
     G::Matrix{T}
     D::Matrix{T}
     Δᵐ::T
+    Δᵖ::T
+
     # Override constructor for different default meshes for 
     # different poll techniques.
     function Mesh{T}(N, ::AbstractPoll) where T
         mesh = new()
         mesh.G = Matrix(I,N,N)
         mesh.D = hcat(Matrix(I,N,N),-Matrix(I,N,N))
-        mesh.Δᵐ= convert(T, 1)
+        mesh.Δᵐ = convert(T, 1)
+        mesh.Δᵖ = convert(T, 1)
         return mesh
     end 
 end
