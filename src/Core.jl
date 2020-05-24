@@ -73,7 +73,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
         p = new()
         
         p.N = N 
-        p.mesh = Mesh{T}(N, poll)
+        p.mesh = Mesh{T}(N)
         p.poll = poll
 
         p.search = search
@@ -90,12 +90,12 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
         p.num_procs = nworkers()
         p.max_simultanious_evaluations = 1
        
-        p.x = Nothing()
-        p.x_cost = Nothing()
-        p.i = Nothing()
-        p.i_cost = Nothing()
+        p.x = nothing
+        p.x_cost = nothing
+        p.i = nothing
+        p.i_cost = nothing
         
-        if objective != Nothing()
+        if objective != nothing
             p.objective = objective
         end
 
