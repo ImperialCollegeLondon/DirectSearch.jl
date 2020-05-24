@@ -453,5 +453,14 @@ using LinearAlgebra
         DS.GenerateBasis(N, 13, 6) == [36 0 -18 -36; 0 54 0 0; -18 0 36 -36; -36 0 -36 -18]
         DS.GenerateBasis(N, 14, 7) == [124 10 12 -16; 10 76 -60 80; 12 -60 54 96; -16 80 96 -2]
 	end
+
+    @testset "GenerateDirections" begin
+        p = DSProblem(4; poll=OrthoMADS(4))
+        #Initially t=7, l=0
+        D = [1 0 0 0 -1 0 0 0; 0 1 0 0 0 -1 0 0; 0 0 1 0 0 0 -1 0; 0 0 0 -1 0 0 0 1]
+        @test DS.GenerateDirections(p) == D
+        @test DS.GenerateDirections(p, p.poll) == D
+        @test DS.GenerateDirections(4, p.poll) == D
+    end
 end
 
