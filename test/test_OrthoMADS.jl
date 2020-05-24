@@ -1,3 +1,5 @@
+using LinearAlgebra 
+
 @testset "OrthoMADS" begin
     @testset "Initialisation" begin
 
@@ -239,8 +241,217 @@
             @test o.t == 15
             @test o.tmax == 15
             @test o.t₀ == 7
-
         end
     end
+
+    @testset "HaltonCoefficient" begin
+        #=
+        Finds the coefficients (a) of the base p expansion of t:
+
+        t = sum(a*p^r) for r = [0,∞]
+        =#
+        p=2
+        @test DS.HaltonCoefficient(p, 0) == []
+        @test DS.HaltonCoefficient(p, 1) == [1]
+        @test DS.HaltonCoefficient(p, 2) == [0, 1]
+        @test DS.HaltonCoefficient(p, 3) == [1, 1]
+        @test DS.HaltonCoefficient(p, 4) == [0, 0, 1]
+        @test DS.HaltonCoefficient(p, 5) == [1, 0, 1]
+        @test DS.HaltonCoefficient(p, 6) == [0, 1, 1]
+        @test DS.HaltonCoefficient(p, 7) == [1, 1, 1]
+        @test DS.HaltonCoefficient(p, 8) == [0, 0, 0, 1]
+        @test DS.HaltonCoefficient(p, 9) == [1, 0, 0, 1]
+
+        p=3
+        @test DS.HaltonCoefficient(p, 0) == []
+        @test DS.HaltonCoefficient(p, 1) == [1]
+        @test DS.HaltonCoefficient(p, 2) == [2]
+        @test DS.HaltonCoefficient(p, 3) == [0, 1]
+        @test DS.HaltonCoefficient(p, 4) == [1, 1]
+        @test DS.HaltonCoefficient(p, 5) == [2, 1]
+        @test DS.HaltonCoefficient(p, 6) == [0, 2]
+        @test DS.HaltonCoefficient(p, 7) == [1, 2]
+        @test DS.HaltonCoefficient(p, 8) == [2, 2]
+        @test DS.HaltonCoefficient(p, 9) == [0, 0, 1]
+
+        p=5
+        @test DS.HaltonCoefficient(p, 0) == []
+        @test DS.HaltonCoefficient(p, 1) == [1]
+        @test DS.HaltonCoefficient(p, 2) == [2]
+        @test DS.HaltonCoefficient(p, 3) == [3]
+        @test DS.HaltonCoefficient(p, 4) == [4]
+        @test DS.HaltonCoefficient(p, 5) == [0, 1]
+        @test DS.HaltonCoefficient(p, 6) == [1, 1]
+        @test DS.HaltonCoefficient(p, 7) == [2, 1]
+        @test DS.HaltonCoefficient(p, 8) == [3, 1]
+        @test DS.HaltonCoefficient(p, 9) == [4, 1]
+
+        p=7
+        @test DS.HaltonCoefficient(p, 0) == []
+        @test DS.HaltonCoefficient(p, 1) == [1]
+        @test DS.HaltonCoefficient(p, 2) == [2]
+        @test DS.HaltonCoefficient(p, 3) == [3]
+        @test DS.HaltonCoefficient(p, 4) == [4]
+        @test DS.HaltonCoefficient(p, 5) == [5]
+        @test DS.HaltonCoefficient(p, 6) == [6]
+        @test DS.HaltonCoefficient(p, 7) == [0, 1]
+        @test DS.HaltonCoefficient(p, 8) == [1, 1]
+        @test DS.HaltonCoefficient(p, 9) == [2, 1]
+    end
+
+    @testset "HalonEntry" begin
+        #=
+        Calculates the radical inverse function in base p:
+
+        u = sum(a/p^(1+r)) for r=[0,∞]
+        =#
+
+        t = 0
+        @test DS.HaltonEntry(2, t) ≈ 0
+        @test DS.HaltonEntry(3, t) ≈ 0
+        @test DS.HaltonEntry(5, t) ≈ 0
+        @test DS.HaltonEntry(7, t) ≈ 0
+
+        t = 1
+        @test DS.HaltonEntry(2, t) ≈ 1/2
+        @test DS.HaltonEntry(3, t) ≈ 1/3
+        @test DS.HaltonEntry(5, t) ≈ 1/5
+        @test DS.HaltonEntry(7, t) ≈ 1/7
+
+        t = 2
+        @test DS.HaltonEntry(2, t) ≈ 1/4
+        @test DS.HaltonEntry(3, t) ≈ 2/3
+        @test DS.HaltonEntry(5, t) ≈ 2/5
+        @test DS.HaltonEntry(7, t) ≈ 2/7
+
+        t = 3
+        @test DS.HaltonEntry(2, t) ≈ 3/4
+        @test DS.HaltonEntry(3, t) ≈ 1/9
+        @test DS.HaltonEntry(5, t) ≈ 3/5
+        @test DS.HaltonEntry(7, t) ≈ 3/7
+
+        t = 4
+        @test DS.HaltonEntry(2, t) ≈ 1/8
+        @test DS.HaltonEntry(3, t) ≈ 4/9
+        @test DS.HaltonEntry(5, t) ≈ 4/5
+        @test DS.HaltonEntry(7, t) ≈ 4/7
+
+        t = 5
+        @test DS.HaltonEntry(2, t) ≈ 5/8
+        @test DS.HaltonEntry(3, t) ≈ 7/9
+        @test DS.HaltonEntry(5, t) ≈ 1/25
+        @test DS.HaltonEntry(7, t) ≈ 5/7
+        
+        t = 6
+        @test DS.HaltonEntry(2, t) ≈ 3/8
+        @test DS.HaltonEntry(3, t) ≈ 2/9
+        @test DS.HaltonEntry(5, t) ≈ 6/25
+        @test DS.HaltonEntry(7, t) ≈ 6/7
+        
+        t = 7
+        @test DS.HaltonEntry(2, t) ≈ 7/8
+        @test DS.HaltonEntry(3, t) ≈ 5/9
+        @test DS.HaltonEntry(5, t) ≈ 11/25
+        @test DS.HaltonEntry(7, t) ≈ 1/49
+    end
+
+    @testset "Halton" begin
+        N = 4
+
+        t = 0
+        @test DS.Halton(N, t) ≈ [0,0,0,0]
+
+        t = 1
+        @test DS.Halton(N, t) ≈ [1/2,1/3,1/5,1/7]
+
+        t = 2
+        @test DS.Halton(N, t) ≈ [1/4,2/3,2/5,2/7]
+
+        t = 3
+        @test DS.Halton(N, t) ≈ [3/4,1/9,3/5,3/7]
+
+        t = 4
+        @test DS.Halton(N, t) ≈ [1/8,4/9,4/5,4/7]
+
+        t = 5
+        @test DS.Halton(N, t) ≈ [5/8,7/9,1/25,5/7]
+        
+        t = 6
+        @test DS.Halton(N, t) ≈ [3/8, 2/9, 6/25, 6/7]
+        
+        t = 7
+        @test DS.Halton(N, t) ≈ [7/8, 5/9, 11/25, 1/49]
+    end 
+
+    @testset "AdjustedHaltonFamily" begin
+        f = DS.AdjustedHaltonFamily([1/2, 1/3, 1/5, 1/7])
+        @test f(0) ≈ [0.0,0.0,0.0,0.0]
+        @test f(1) ≈ [0.0,0.0,-1.0,-1.0]
+        @test f(2) ≈ [0.0,-1.0,-1.0,-1.0]
+        @test f(3) ≈ [0.0,-1.0,-2.0,-2.0]
+        @test f(4) ≈ [0.0,-1.0,-2.0,-3.0]
+        @test f(5) ≈ [0.0,-2.0,-3.0,-4.0]
+    end
+
+    @testset "bad_argmax" begin
+        #General argmax test, due to the rounding also done, being within 0.1 is more than
+        #sufficient 
+        f(x) = 0.1x^2 + x
+        @test isapprox(DS.bad_argmax(0, f, 6), 4.2195444, atol=0.1)
+        
+        g = DS.AdjustedHaltonFamily([7/8,5/9,11/25,1/49])
+        @test isapprox(DS.bad_argmax(0.0, x->norm(g(x)), 1.0), 0.8, atol = 0.1)
+
+        h = DS.AdjustedHaltonFamily([7/16,22/27,22/25,2/49])
+        @test isapprox(DS.bad_argmax(5.156854249492381, x->norm(h(x)), 11.313708498984761), 11.5, atol = 0.1)
+    end
+
+    @testset "AdjustedHalton" begin
+        N = 4
+
+        t = 7; l = 0
+        @test DS.AdjustedHalton([7/8,5/9,11/25,1/49], N, l) == [0.0, 0.0, 0.0, -1.0]
+
+        t = 8; l = 1
+        @test DS.AdjustedHalton([1/16,8/9,16/25,8/49], N, l) == [-1.0, 1.0, 0.0, 0.0]
+
+        t = 9; l = 2
+        @test DS.AdjustedHalton([9/16,1/27,21/25,15/49], N, l) == [0.0, -1.0, 1.0, -1.0]
+
+        t = 10; l = 3
+        @test DS.AdjustedHalton([5/16,10/27,2/25,22/49], N, l) == [-1.0, -1.0, -2.0, 0.0]
+
+        t = 11; l = 4
+        @test DS.AdjustedHalton([13/16,19/27,7/25,29/49], N, l) == [2.0, 2.0, -2.0, 1.0]
+
+        t = 12; l = 5
+        @test DS.AdjustedHalton([3/16,4/27,12/25,36/49], N, l) == [-3.0, -4.0, 0.0, 2.0]
+
+        t = 13; l = 6
+        @test DS.AdjustedHalton([11/16,13/27,17/25,43/49], N, l) == [3.0, 0.0, 3.0, 6.0]
+
+        t = 14; l = 7
+        @test DS.AdjustedHalton([7/16,22/27,22/25,2/49], N, l) == [-1.0, 5.0, 6.0, -8.0]
+    end
+
+    @testset "Householder Transform" begin
+        @test DS.HouseholderTransform([-1.0, 5.0, 6.0, -8.0]) ≈
+											[124.0   10.0   12.0  -16.0;
+											  10.0   76.0  -60.0   80.0;
+											  12.0  -60.0   54.0   96.0;
+											 -16.0   80.0   96.0   -2.0]
+    end
+    
+	@testset "Basis Generation" begin
+        N = 4
+        DS.GenerateBasis(N, 7, 0)  ==  [1 0 0 0;    0 1 0 0; 0 0 1 0; 0 0 0 -1]
+        DS.GenerateBasis(N, 8, 1)  ==  [0 2 0 0;    2 0 0 0; 0 0 2 0; 0 0 0 2]
+        DS.GenerateBasis(N, 9, 2)  ==  [3 0 0 0;    0 1 2 -2; 0 2 1 2; 0 -2 2 1]
+        DS.GenerateBasis(N, 10, 3) == [4 -2 -4 0; -2 4 -4 0; -4 -4 -4 0; 0 0 0 6]
+        DS.GenerateBasis(N, 11, 4) == [5 -8 8 -4; -8 5 8 -4; 8 8 5 4; -4 -4 4 11]
+        DS.GenerateBasis(N, 12, 5) == [11 -24 0 12; -24 -3 0 16; 0 0 29 0; 12 16 0 21]
+        DS.GenerateBasis(N, 13, 6) == [36 0 -18 -36; 0 54 0 0; -18 0 36 -36; -36 0 -36 -18]
+        DS.GenerateBasis(N, 14, 7) == [124 10 12 -16; 10 76 -60 80; 12 -60 54 96; -16 80 96 -2]
+	end
 end
 
