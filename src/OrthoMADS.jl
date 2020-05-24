@@ -61,16 +61,22 @@ end
 
 Generates columns and forms a basis matrix for direction generation. 
 """
-function GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T} where T
-	h = Halton(p.N, DG.t)    
-	q = AdjustedHalton(h, p.N, DG.l)
-	H = HouseholderTransform(q)
+(GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T}) where T = 
+    GenerateDirections(p.N, DG)
+
+function GenerateDirections(N::Int64, DG::OrthoMADS{T})::Matrix{T} where T
+	H = GenerateBasis(N, DG.t, DG.l, T)
 	return hcat(H, -H)
 end
 
+function GenerateBasis(N::Int64, t::Int64, l::Int64)
+	h = Halton(N, t)    
+	q = AdjustedHalton(h, N, l)
+	return HouseholderTransform(q)
+end
 
-function Halton(n, t)
-    p = map(prime, 1:n)
+function Halton(N::Int64, t::Int64)
+    p = map(prime, 1:N)
     return map(p -> HaltonEntry(p,t), p)
 end
 
@@ -84,6 +90,7 @@ function HaltonEntry(p,t)
 end
 
 function HaltonCoefficient(p,t)
+    t==0 && return []
     #Maximum non-zero value of r
     r_max = floor(Int64, log(p, t))
     #Need to give values for 0:r_max
@@ -98,12 +105,6 @@ function HaltonCoefficient(p,t)
 end
 
 
-function AdjustedHaltonFamily(halt)
-    d = 2 * halt .- 1
-    q(α) = round.(α .* d ./ norm(d))
-    return q
-end
-
 function AdjustedHalton(halt, n, l)
     #A function that describes a family of directions
     q = AdjustedHaltonFamily(halt)
@@ -116,8 +117,15 @@ function AdjustedHalton(halt, n, l)
     return q(α)
 end
 
-#should find some numerical line search for this
-function bad_argmax(x, f, lim; iter_lim = 10)
+function AdjustedHaltonFamily(halt)
+    d = 2 * halt .- 1
+    q(α) = round.(α .* d ./ norm(d))
+    return q
+end
+
+#TODO use a better defined algorithm for this operation
+#(some kind of numerical line search?)
+function bad_argmax(x, f, lim; iter_lim = 15)
     bump = 1
     iter = 1
     
