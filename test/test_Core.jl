@@ -21,7 +21,7 @@
     @testset "Mesh" begin
         N = 3
         p = DSProblem{T}(N)
-        m = DS.Mesh{T}(N, LTMADS{T}())
+        m = DS.Mesh{T}(N)
         @test p.mesh.G == m.G == [1 0 0; 0 1 0; 0 0 1]
         @test p.mesh.D == m.D == [1 0 0 -1 0 0; 0 1 0 0 -1 0; 0 0 1 0 0 -1]
         @test p.mesh.Δᵐ == m.Δᵐ == 1.0

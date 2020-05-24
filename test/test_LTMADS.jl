@@ -1,8 +1,6 @@
 using Random
 using LinearAlgebra
 
-const DS = DirectSearch
-
 @testset "LTMADS" begin
     all_in_range(l, arr, rng) = mapreduce(x -> x in rng, (x,y) -> x && y, arr)
     T = Float64
