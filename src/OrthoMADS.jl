@@ -65,7 +65,7 @@ Generates columns and forms a basis matrix for direction generation.
     GenerateDirections(p.N, DG)
 
 function GenerateDirections(N::Int64, DG::OrthoMADS{T})::Matrix{T} where T
-	H = GenerateBasis(N, DG.t, DG.l, T)
+    H = GenerateBasis(N, DG.t, DG.l)
 	return hcat(H, -H)
 end
 
