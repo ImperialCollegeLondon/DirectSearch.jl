@@ -12,7 +12,7 @@
         d = 1.0
         s = DS.RandomSearch(10)
         
-        points = DS.CacheRandomPoints(N, c, d, s)
+        points = DS.RandomPointsFromCache(N, c, d, s)
 
         for point in points
             mesh = keys(c.costs)
