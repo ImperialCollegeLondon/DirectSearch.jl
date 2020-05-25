@@ -45,8 +45,10 @@
         @test_throws MethodError DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(2)) 
         @test_throws ErrorException DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(3)) 
 
-        #TODO Fix this function
-        #vec_ref = DS.AddExtremeConstraint(C, [c2, c3])     
+        vec_ref = DS.AddExtremeConstraint(C, [c2, c3])     
+        @test length(vec_ref) == 2
+        @test vec_ref[1].value == 2
+        @test vec_ref[2].value == 3
     end
 
     @testset "AddProgressiveConstraint" begin
@@ -58,8 +60,10 @@
         @test_throws MethodError DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(1)) 
         @test_throws ErrorException DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(3)) 
 
-        #TODO Fix this function
-        #vec_ref = DS.AddExtremeConstraint(C, [c2, c3])     
+        vec_ref = DS.AddProgressiveConstraint(C, [c2, c3])     
+        @test length(vec_ref) == 2
+        @test vec_ref[1].value == 2
+        @test vec_ref[2].value == 3
     end
 
     C = DS.Constraints{T}()

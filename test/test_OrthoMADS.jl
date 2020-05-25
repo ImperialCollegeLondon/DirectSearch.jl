@@ -444,14 +444,14 @@ using LinearAlgebra
     
 	@testset "Basis Generation" begin
         N = 4
-        DS.GenerateBasis(N, 7, 0)  ==  [1 0 0 0;    0 1 0 0; 0 0 1 0; 0 0 0 -1]
-        DS.GenerateBasis(N, 8, 1)  ==  [0 2 0 0;    2 0 0 0; 0 0 2 0; 0 0 0 2]
-        DS.GenerateBasis(N, 9, 2)  ==  [3 0 0 0;    0 1 2 -2; 0 2 1 2; 0 -2 2 1]
-        DS.GenerateBasis(N, 10, 3) == [4 -2 -4 0; -2 4 -4 0; -4 -4 -4 0; 0 0 0 6]
-        DS.GenerateBasis(N, 11, 4) == [5 -8 8 -4; -8 5 8 -4; 8 8 5 4; -4 -4 4 11]
-        DS.GenerateBasis(N, 12, 5) == [11 -24 0 12; -24 -3 0 16; 0 0 29 0; 12 16 0 21]
-        DS.GenerateBasis(N, 13, 6) == [36 0 -18 -36; 0 54 0 0; -18 0 36 -36; -36 0 -36 -18]
-        DS.GenerateBasis(N, 14, 7) == [124 10 12 -16; 10 76 -60 80; 12 -60 54 96; -16 80 96 -2]
+        DS.GenerateOMBasis(N, 7, 0)  ==  [1 0 0 0;    0 1 0 0; 0 0 1 0; 0 0 0 -1]
+        DS.GenerateOMBasis(N, 8, 1)  ==  [0 2 0 0;    2 0 0 0; 0 0 2 0; 0 0 0 2]
+        DS.GenerateOMBasis(N, 9, 2)  ==  [3 0 0 0;    0 1 2 -2; 0 2 1 2; 0 -2 2 1]
+        DS.GenerateOMBasis(N, 10, 3) == [4 -2 -4 0; -2 4 -4 0; -4 -4 -4 0; 0 0 0 6]
+        DS.GenerateOMBasis(N, 11, 4) == [5 -8 8 -4; -8 5 8 -4; 8 8 5 4; -4 -4 4 11]
+        DS.GenerateOMBasis(N, 12, 5) == [11 -24 0 12; -24 -3 0 16; 0 0 29 0; 12 16 0 21]
+        DS.GenerateOMBasis(N, 13, 6) == [36 0 -18 -36; 0 54 0 0; -18 0 36 -36; -36 0 -36 -18]
+        DS.GenerateOMBasis(N, 14, 7) == [124 10 12 -16; 10 76 -60 80; 12 -60 54 96; -16 80 96 -2]
 	end
 
     @testset "GenerateDirections" begin

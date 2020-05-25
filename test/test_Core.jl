@@ -74,7 +74,7 @@
         @test p.iteration_limit == 1100
         BumpIterationLimit(p) 
         @test p.iteration_limit == 1200
-        BumpIterationLimit(p, 200) 
+        BumpIterationLimit(p; i=200) 
         @test p.iteration_limit == 1400
 
         # Variable Ranges
