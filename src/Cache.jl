@@ -24,7 +24,7 @@ end
 
 Add point `x` and its cost `cost` to the cache of `p`. 
 """
-CachePush(p::AbstractProblem, x::Vector, cost) = CachePush(p.cache, x, cost)
+CachePush(p::AbstractProblem{T}, x::Vector{T}, cost::T) where T = CachePush(p.cache, x, cost)
 
 """
     CachePush(p::AbstractProblem)
