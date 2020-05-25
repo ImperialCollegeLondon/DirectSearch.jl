@@ -3,18 +3,28 @@ using Distributed
 using SharedArrays
 
 export DSProblem, ProblemSense, SetObjective, SetInitialPoint, SetVariableRange, 
-       SetVariableRanges, Optimize!, SetIterationLimit, BumpIterationLimit
+       SetVariableRanges, Optimize!, SetIterationLimit, BumpIterationLimit, SetMaxEvals
 
 @enum ProblemSense Min Max
 @enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit
 
-"""
-    DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS(N), search::AbstractSearch=NullSearch()) where T
-                          
 
-Return a problem definition for an `N` dimensional problem. Specifiy the problem 
-configuration with `poll` and `search`. By default LTMADS is used for the poll step, with
-nothing used for the search step.
+
+"""
+	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(), 
+                         search::AbstractSearch=NullSearch(),
+                         objective::Union{Function,Nothing}=nothing,
+                         initial_point::Vector{T}=zeros(T, N),
+                         iteration_limit::Int=1000,
+                         sense::ProblemSense=Min)
+
+Return a problem definition for an `N` dimensional problem.
+
+`poll` and `search` specify the poll and search step algorithms to use. The default
+choices are (LTMADS)[@ref] and (NullSearch)[@ref] respectively.
+
+Note that if working with `Float64` (normally the case) then the type
+parameterisation can be ignored.
 """
 mutable struct DSProblem{T} <: AbstractProblem{T}
 
@@ -61,11 +71,12 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     h_max::T
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
+
     function DSProblem{T}(N::Int; 
                           poll::AbstractPoll=LTMADS{T}(), 
                           search::AbstractSearch=NullSearch(),
-                          objective::Union{Function,Nothing}=Nothing(),
-                          initial_point::Vector{T}=[0.0,0.0,0.0],
+                          objective::Union{Function,Nothing}=nothing,
+                          initial_point::Vector{T}=zeros(T, N),
                           iteration_limit::Int=1000,
                           sense::ProblemSense=Min
                          ) where T
@@ -116,12 +127,12 @@ min_mesh_size(::DSProblem{T}) where T = eps(T)/2
 """
     SetMaxEvals(p::DSProblem, m::Int)
 
-Set the maximum number of simultanious function evaluations that can be run.
+Set the maximum number of simultaneous function evaluations that can be run.
 By default this will be set 1.
 
-If the function evaluation is not overriden (e.g. for sending calculation to a cluster)
-then setting this to a number greater than your PC's number of threads will result 
-in no improvement.
+If (DirectSearch.function_evaluation)[@ref] is not overriden (e.g. for sending 
+calculation to a cluster) then setting this to a number greater than your PC's 
+number of threads will result in no improvement.
 """
 function SetMaxEvals(p::DSProblem, m::Int)
     if m > p.num_procs
@@ -134,6 +145,12 @@ function SetMaxEvals(p::DSProblem, m::Int)
     end
 end
 
+"""
+    SetObjective(p::DSProblem, obj::Function)
+
+Sets the target objective function to solve. `obj` should take a vector and return
+a single cost value.
+"""
 function SetObjective(p::DSProblem, obj::Function)
     if p.sense == Min
         p.objective = obj
@@ -142,6 +159,11 @@ function SetObjective(p::DSProblem, obj::Function)
     end
 end
 
+"""
+    SetIterationLimit(p::DSProblem, i::Int)
+
+Set the maximum number of iterations to `i`.
+"""
 function SetIterationLimit(p::DSProblem, i::Int)
     if i < p.iteration
         error("Cannot set iteration limit to lower than the number of iterations that have run")
@@ -150,11 +172,21 @@ function SetIterationLimit(p::DSProblem, i::Int)
     end
 end
 
-BumpIterationLimit(p::DSProblem) = BumpIterationLimit(p, 100)
-function BumpIterationLimit(p::DSProblem, val::Int)
-    p.iteration_limit += val
+"""
+    BumpIterationLimit(p::DSProblem, val::Int=100)
+
+Increase the iteration limit by `i`.
+"""
+function BumpIterationLimit(p::DSProblem; i::Int=100)
+    p.iteration_limit += i
 end
 
+"""
+    SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
+
+Set the initial incumbent point to `x`. This must be of the correct dimension. If using 
+any extreme barrier constraints then it must also satisfy these constraints.
+"""
 function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
     size(x, 1) == p.N || error("Point dimensions don't match problem definition")
     #TODO Check against constraints 
@@ -180,11 +212,25 @@ end
 
 
 #TODO review if this is the kind of scaling we want to do
+"""
+	SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
+
+Set the expected range of the variable with index `i` to between lower (`l`) and upper (`u`)
+values. This **does not** create a constraint, and is only used for scaling when a variable
+varies with a significantly different scale to the others.
+"""
 function SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
     p.meshscale[index] = 0.1(u-l)
 end
 
+"""
+	SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
+
+Call [`SetVariableRange`](@ref) for each variable. The vectors `l` and `u` should contain
+a lower and upper bound for each variable. If it is desired to keep a variable at default
+scaling, then give it upper and lower bounds of `-5` and `5` respectively.
+"""
 function SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
     size(l, 1) == p.N || error("Lower bound vector dimensions don't match problem definition")
     size(u, 1) == p.N || error("Upper bound vector dimensions don't match problem definition")
@@ -196,8 +242,9 @@ end
 
 Run the direct search algorithm on problem `p`.
 
-`p` must have had its initial point set, which must be valid for whatever constraints
-have been given.
+`p` must have had its initial point and objective function set. If extreme 
+barrier constraints have been set then the initial point must be value for 
+those constraints.
 """
 function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 

@@ -8,7 +8,13 @@ function Search(p::DSProblem{T})::IterationOutcome  where T
 end
 
 
-mutable struct NullSearch <: AbstractSearch end
+"""
+    NullSearch()
+
+Return no trial points for a search stage (ie, skips the
+search stage from running)
+"""
+struct NullSearch <: AbstractSearch end
 
 """
     GenerateSearchPoints(p::DSProblem)
@@ -23,10 +29,15 @@ GenerateSearchPoints(p::DSProblem, ::NullSearch) = []
 """
     GenerateSearchPoints(p::DSProblem{T})::Vector{Vector{T}} where T
 
-Alias for GenerateSearchPoints(p, NullSearch).
+Calls `GenerateSearchPoints` for the search step within `p`.
 """
-GenerateSearchPoints(p::DSProblem) = GenerateSearchPoints(p, NullSearch())
+(GenerateSearchPoints(p::DSProblem{T})::Vector{Vector{T}}) where T = GenerateSearchPoints(p, p.search)
 
+"""
+    RandomSearch(M::Int)
+
+Return `M` randomly chosen trial points from the current mesh.
+"""
 mutable struct RandomSearch <: AbstractSearch
     M::Int #Number of points to generate
 end
@@ -39,11 +50,11 @@ Finds points that are Δᵐ distance from any point in the mesh in a uniformly r
 function GenerateSearchPoints(p::DSProblem{T}, s::RandomSearch
                              )::Vector{Vector{T}} where T
     #TODO generate directions from the D mesh matrix
-    return CacheRandomPoints(p.N, p.cache, p.mesh.Δᵐ, s)
+    return RandomPointsFromCache(p.N, p.cache, p.mesh.Δᵐ, s)
 end
 
-function CacheRandomPoints(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
-                             )::Vector{Vector{T}} where T
+function RandomPointsFromCache(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
+                              )::Vector{Vector{T}} where T
     mesh_points = CacheRandomSample(c, s.M)     
 
     for i in 1:s.M

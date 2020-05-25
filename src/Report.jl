@@ -1,4 +1,4 @@
-export report, ReportConstraints
+#export report, ReportConstraints
 
 #TODO add ability to save report every X iterations
 #TODO read report file to warm-start solver
@@ -6,6 +6,8 @@ export report, ReportConstraints
 
 """
     report_finish(p::DSProblem)
+
+**Not Implemented**
 
 If not silent, give a short printout of the result of the problem.
 

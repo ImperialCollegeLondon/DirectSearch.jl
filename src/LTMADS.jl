@@ -4,9 +4,13 @@ using LinearAlgebra
 export LTMADS
 
 """
-    LTMADS{T}()
+    LTMADS()
 
 Return an empty LTMADS object. 
+
+LTMADS is a poll stage that creates a set of directions based
+on a semi-randomly generated lower triangular matrix. This randomness
+means that several runs of the algorithm may be needed to find a minimum.
 """
 mutable struct LTMADS{T} <: AbstractPoll
     b::Dict{T,Vector{T}}
@@ -27,7 +31,7 @@ end
 Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
 barrier constraints with Audet & Dennis 2009 expression 2.4
 """
-function MeshUpdate!(m::Mesh{T}, ::LTMADS{T}, result::IterationOutcome) where T
+function MeshUpdate!(m::Mesh, ::LTMADS, result::IterationOutcome)
     if result == Unsuccessful
         m.Δᵐ /= 4
     elseif result == Dominating && m.Δᵐ <= 0.25
