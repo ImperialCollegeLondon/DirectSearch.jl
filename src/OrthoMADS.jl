@@ -4,9 +4,14 @@ using LinearAlgebra
 export OrthoMADS
 
 """
-    OrthoMADS{T}()
+    OrthoMADS(N::Int)
 
-Return an empty LTMADS object. 
+Return an empty OrthoMADS object. `N` must match the dimension of the
+problem that this stage is being given to.
+
+OrthoMADS uses Halton sequences to generate an orthogonal basis of
+directiosn for the poll step. This is a deterministic process, unlike
+(`LTMADS`)[@ref].
 """
 mutable struct OrthoMADS{T} <: AbstractPoll
     l::Int64
@@ -14,8 +19,8 @@ mutable struct OrthoMADS{T} <: AbstractPoll
 	t₀::Int64
     t::Int64
     tmax::Int64
-    OrthoMADS(N) = OrthoMADS{Float64}(N)
-    function OrthoMADS{T}(N) where T l = 0
+    OrthoMADS(N) = OrthoMADS{Float64}(N::Int)
+    function OrthoMADS{T}(N::Int) where T l = 0
         M = new()
         #Initialise as the Nth prime
         M.tmax = M.t = M.t₀ = prime(N)
@@ -26,12 +31,11 @@ mutable struct OrthoMADS{T} <: AbstractPoll
 end
 
 """
-    MeshUpdate!(mesh::Mesh, improvement_found::Bool)
+    MeshUpdate!(mesh::Mesh, o::OrthoMADS, result::IterationOutcome)
 
-Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
-barrier constraints with Audet & Dennis 2009 expression 2.4
+Implements the OrthoMads update rules.
 """
-function MeshUpdate!(m::Mesh{T}, o::OrthoMADS{T}, result::IterationOutcome) where T
+function MeshUpdate!(m::Mesh, o::OrthoMADS, result::IterationOutcome)
     if result == Unsuccessful
         o.l += 1
     elseif result == Dominating
@@ -65,11 +69,11 @@ Generates columns and forms a basis matrix for direction generation.
     GenerateDirections(p.N, DG)
 
 function GenerateDirections(N::Int64, DG::OrthoMADS{T})::Matrix{T} where T
-    H = GenerateBasis(N, DG.t, DG.l)
+    H = GenerateOMBasis(N, DG.t, DG.l)
 	return hcat(H, -H)
 end
 
-function GenerateBasis(N::Int64, t::Int64, l::Int64)
+function GenerateOMBasis(N::Int64, t::Int64, l::Int64)
 	h = Halton(N, t)    
 	q = AdjustedHalton(h, N, l)
 	return HouseholderTransform(q)
