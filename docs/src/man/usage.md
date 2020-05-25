@@ -145,11 +145,3 @@ Note that OrthoMADS is deterministic, therefore using DirectSearch with OrthoMAD
 ## Custom Algorithms
 DirectSearch.jl is designed to make it simple to add custom search and poll stages. See [Adding a Search Step](@ref) and [Adding a Poll Step](@ref) for an overview of this.
 
-
-
-
-## Future Features
-- Orthomads implementation
-- More flexible stopping conditions
-- Better result/parameter access methods
-- Larger variety of search stages
