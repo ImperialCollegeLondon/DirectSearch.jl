@@ -62,7 +62,7 @@ const DefaultProgressiveRef = CollectionIndex(2)
 
 
 """
-ConstraintCollection{T,C}(h_max::T, h_max_update::Function, aggregator::Function) where {T,C<:AbstractConstraint}
+    ConstraintCollection{T,C}(h_max::T, h_max_update::Function, aggregator::Function) where {T,C<:AbstractConstraint}
 
 Contains multiple constraints of the same type that have the same settings applied to them.
 
@@ -268,8 +268,6 @@ end
 
 
 
-AddExtremeConstraint(p::AbstractProblem, f; index::CollectionIndex=CollectionIndex(1)
-                    ) = AddExtremeConstraint(p.constraints, f, index=index)
 """
     AddExtremeConstraint(p::AbstractProblem, c::Function)::Tuple(ConstraintIndex, CollectionIndex)
 
@@ -282,6 +280,9 @@ indicating if the constraint has been met or not.
 The `index` argument can be specified to give a collection to add the constraint to. The specified
 collection must exist, and must be able to accept extreme barrier constraints.
 """
+AddExtremeConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(1)
+                    ) = AddExtremeConstraint(p.constraints, f, index=index)
+
 function AddExtremeConstraint(p::Constraints{T}, f::Function;
                               index::CollectionIndex=CollectionIndex(1))::ConstraintIndex where T
     i = index.value
@@ -296,21 +297,22 @@ end
 
 
 """
-    AddExtremeConstraint(p::AbstractProblem, c::Vector{Function})
+    AddExtremeConstraint(p::AbstractProblem, c::Vector{Function}; index::CollectionIndex=CollectionIndex(1))
 
-Register a group of functions that define extreme barrier constraints. Return
-a vector of constraint indexes that refer to the constraints.
+Register a group of functions that define extreme barrier constraints. Calls 
+[`AddExtremeConstraint`](@ref) on each function individually.
 """
+AddExtremeConstraint(p::AbstractProblem, f::Vector{Function}; index::CollectionIndex=CollectionIndex(1)
+                    ) = AddExtremeConstraint(p.constraints, f, index=index)
+
 function AddExtremeConstraint(p::Constraints, f::Vector{Function};
                               index::CollectionIndex=CollectionIndex(1))::Vector{ConstraintIndex}
     return [AddExtremeConstraint(p, fnc, index=index) for fnc in f]
 end
 
-AddProgressiveConstraint(p::AbstractProblem, f; index::CollectionIndex=CollectionIndex(2)
-                        ) = AddProgressiveConstraint(p.constraints, f, index=index)
 
 """
-    AddProgressiveConstraint(p::AbstractProblem, c::Function)
+    AddProgressiveConstraint(p::AbstractProblem, c::Function; index::CollectionIndex=CollectionIndex(2))
     
 Register a single function that defines a progressive barrier constraint. Return
 an index that refers to the constraint.
@@ -319,6 +321,9 @@ The provided function should take a vector input and return a violation amount. 
 return type should be the same as the type that the problem is defined as (default 
 is `Float64`).
 """
+AddProgressiveConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(2)
+                        ) = AddProgressiveConstraint(p.constraints, f, index=index)
+
 function AddProgressiveConstraint(p::Constraints, f::Function;
                                   index::CollectionIndex=CollectionIndex(2))::ConstraintIndex
     i = index.value
@@ -335,20 +340,15 @@ end
 """
     AddProgressiveConstraint(p::AbstractProblem, c::Vector{Function})::Vector{Int}
     
-Register a vector of functions that define a group of progressive barrier 
-constraints. Return a vector of indices that refer to the constriants.
-
-The provided functions should take a vector input and return a violation amount. The
-return type should be the same as the type that the problem is defined as (default 
-is `Float64`).
+Register a group of functions that define progressive barrier constraints. Calls 
+[`AddProgressiveConstraint`](@ref) on each function individually.
 """
+AddProgressiveConstraint(p::AbstractProblem, f::Vector{Function}; index::CollectionIndex=CollectionIndex(2)
+                        ) = AddProgressiveConstraint(p.constraints, f, index=index)
+
 function AddProgressiveConstraint(p::Constraints, c::Vector{Function};
                                   index::CollectionIndex=CollectionIndex(2))::Vector{ConstraintIndex}
     return map(f -> AddProgressiveConstraint(p, f, index=index), c)
-end
-
-function AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex
-    AddProgressiveCollection(p.constraints; kwargs...)
 end
 
 """
@@ -357,7 +357,6 @@ end
 
 Instantiate a new constraint collection within the problem. Returns an index that refers to this
 new collection.
-
 
 The default constraint settings match those from Audet & Dennis 2009:
 
@@ -370,6 +369,8 @@ The default constraint settings match those from Audet & Dennis 2009:
 Note that the aggregator differs from that proposed by Audet & Dennis 2009 due to supporting
 multiple values of h_max at the same time.
 """
+AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
+
 function AddProgressiveCollection(p::Constraints{T}; h_max=Inf, 
                                   h_max_update::Function=h_max_update, 
                                   aggregator::Function=x->max(0,x)^2)::CollectionIndex where T
@@ -380,8 +381,6 @@ function AddProgressiveCollection(p::Constraints{T}; h_max=Inf,
     return CollectionIndex(p.count)
 end
 
-(AddExtremeCollection(p::AbstractProblem)::CollectionIndex) where T = 
-    AddExtremeCollection(p.constraints)
 
 """
     AddExtremeCollection(p::Constraints{T})::CollectionIndex where T
@@ -389,6 +388,9 @@ end
 Instantiate a new constraint collection for extreme constraints. Returns an index that 
 refers to the new collection.
 """
+(AddExtremeCollection(p::AbstractProblem)::CollectionIndex) where T = 
+    AddExtremeCollection(p.constraints)
+
 function AddExtremeCollection(p::Constraints{T})::CollectionIndex where T
     f1() = error("Should not be calling h_max update for an extreme constraint collection")
     f2() = error("Should not be calling aggregator update for an extreme constraint collection")
