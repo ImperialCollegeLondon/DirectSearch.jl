@@ -17,10 +17,11 @@ mutable struct LTMADS{T} <: AbstractPoll
     i::Dict{T,Int}
     maximal_basis::Bool
     LTMADS(;kwargs...) = LTMADS{Float64}(;kwargs...)
-    function LTMADS{T}(;maximal_basis=false) where T
+    function LTMADS{T}(;maximal_basis=true) where T
         g = new()
         g.b = Dict{T, Vector{T}}()
         g.i = Dict{T, Int}()
+        g.maximal_basis=maximal_basis
         return g
     end
 end
@@ -32,13 +33,23 @@ Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progr
 barrier constraints with Audet & Dennis 2009 expression 2.4
 """
 function MeshUpdate!(m::Mesh, ::LTMADS, result::IterationOutcome)
+    #if result == Unsuccessful
+    #    m.Δᵐ /= 4
+    #elseif result == Dominating && m.Δᵐ <= 0.25
+    #    m.Δᵐ *= 4
+    #elseif result == Improving
+    #    m.Δᵐ == m.Δᵐ
+    #end
     if result == Unsuccessful
-        m.Δᵐ /= 4
-    elseif result == Dominating && m.Δᵐ <= 0.25
-        m.Δᵐ *= 4
+        m.l += 1
+    #TODO investigate affect of allowing negative l
+    elseif result == Dominating && m.l > 0
+        m.l -= 1
     elseif result == Improving
-        m.Δᵐ == m.Δᵐ
+        m.l == m.l
     end
+    
+
 end
 
 
