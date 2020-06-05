@@ -118,7 +118,11 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     end
 end
 
-MeshUpdate!(p::DSProblem, result::IterationOutcome) = MeshUpdate!(p.mesh, p.poll, result)
+function MeshUpdate!(p::DSProblem, result::IterationOutcome)
+    MeshUpdate!(p.mesh, p.poll, result)
+    MeshUpdate!(p.mesh)
+end
+
 (GetMeshSize(p::DSProblem{T})::T) where T = p.mesh.Δᵐ
 
 min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
@@ -373,6 +377,7 @@ function function_evaluation(p::DSProblem{T},
                              trial_points::Vector{Vector{T}})::Vector{T} where T
     if p.max_simultanious_evaluations > 1
         costs = SharedArray{T,1}((length(trial_points)))
+        #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)
             costs[i] = p.objective(trial_points[i])
         end
