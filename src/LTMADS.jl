@@ -65,8 +65,8 @@ function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where 
     return Dₖ
 end
 
-function form_basis_matrix(N, B, DG::LTMADS{T}) where T
-    maximal_basis && return [B -B]
+function form_basis_matrix(N::Int, B::Matrix{T}, max_basis::Bool) where T
+    max_basis && return [B -B]
 
     d = zeros(T, N)
     for (i,_) in enumerate(d)
