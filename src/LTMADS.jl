@@ -59,7 +59,7 @@ end
 Generates columns and forms a basis matrix for direction generation. 
 """
 function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where T
-    B = LT_basis_generation(mesh, p.N, DG)
+    B = LT_basis_generation(p.mesh, p.N, DG)
     Dₖ = form_basis_matrix(p.N, B, DG.maximal_basis)
 
     return Dₖ
