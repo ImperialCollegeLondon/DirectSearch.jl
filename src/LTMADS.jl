@@ -59,24 +59,27 @@ end
 Generates columns and forms a basis matrix for direction generation. 
 """
 function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where T
-    B = LT_basis_generation(p.mesh.Δᵐ, p.N, DG)
+    B = LT_basis_generation(mesh, p.N, DG)
     Dₖ = form_basis_matrix(p.N, B, DG.maximal_basis)
 
     return Dₖ
 end
 
-function form_basis_matrix(N, B, maximal_basis)
+function form_basis_matrix(N, B, DG::LTMADS{T}) where T
     maximal_basis && return [B -B]
 
-    d = [-sum(B[i,:]) for i=1:N]
+    d = zeros(T, N)
+    for (i,_) in enumerate(d)
+        d[i] = -sum(B[i,:])
+    end
+
     return [B d]
 end
 
-function LT_basis_generation(Δ::T, N::Int, DG::LTMADS{T}) where T
-    l = convert(T,-log(4,Δ))
-    b, i = b_l_generation(DG.b, DG.i, l, N)
+function LT_basis_generation(m::Mesh, N::Int, DG::LTMADS{T}) where T
+    b, i = b_l_generation(DG.b, DG.i, m.l, N)
 
-    L = L_generation(N, l)
+    L = L_generation(N, m.l)
 
     B = B_generation(N, i, b, L)
     
@@ -93,13 +96,19 @@ function B′_generation(B, N; perm=shuffle(1:N))
     return B′
 end
 
-function b_l_generation(b::Dict{T,Vector{T}}, i::Dict{T,Int}, l::T, N::Int) where T
+function b_l_generation(b::Dict{T,Vector{T}}, i::Dict{T,Int}, l::Int, N::Int) where T
     if !haskey(b, l)
         i[l] = rand(1:N)
-        b[l] = [rand(-2^l+1:2^l-1) for _=1:N]
-        b[l][i[l]] = rand([-1, 1]) * 2^l
+        b[l] = zeros(T, N)
+        
+        for j in 1:N
+            if j == i[l]
+                b[l][j] = rand([-2^l, 2^l])
+            else
+                b[l][j] = rand(-2^l+1:2^l-1)
+            end
+        end
     end
-    #println(b)
     return b[l], i[l]
 end
 
