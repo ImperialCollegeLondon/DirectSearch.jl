@@ -4,9 +4,9 @@ function Poll(p::DSProblem{T})::IterationOutcome where T
 end
 
 #TODO this needs to use the poll size parameter not the mesh size parameter
+# Mostly implements definition 2.6 from Audet & Dennis 2009
 function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} where T
     points = []
-    # Mostly implements definition 2.6 from Audet & Dennis 2009
 
     if !isnothing(p.x)
         dirs = GenerateDirections(p)
