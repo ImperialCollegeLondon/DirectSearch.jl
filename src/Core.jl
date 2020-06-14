@@ -56,6 +56,8 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     #Problem size
     N::Int
 
+    function_evaluations::Int
+
     iteration::Int
     iteration_limit::Int
     status::OptimizationStatus
@@ -90,9 +92,11 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
         p.search = search
     
         p.iteration = 0
+        p.function_evaluations = 0
         p.iteration_limit = iteration_limit
         p.status = Unoptimized
         p.sense = sense
+
         
         p.meshscale = ones(p.N)
 
@@ -249,7 +253,7 @@ those constraints.
 function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 
     EvaluateInitialPoint(p)
-    
+
     while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
 
         result = Search(p)
@@ -394,6 +398,7 @@ function function_evaluation(p::DSProblem{T},
                              trial_point::Vector{T})::T where T
     CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
     cost = p.objective(trial_point)
+    p.function_evaluations += 1
     CachePush(p, trial_point, cost)  
 	return cost
 end
