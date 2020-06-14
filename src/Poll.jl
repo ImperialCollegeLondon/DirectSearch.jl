@@ -3,6 +3,7 @@ function Poll(p::DSProblem{T})::IterationOutcome where T
     return EvaluatePoint!(p, points)
 end
 
+#TODO this needs to use the poll size parameter not the mesh size parameter
 function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} where T
     points = []
     # Mostly implements definition 2.6 from Audet & Dennis 2009

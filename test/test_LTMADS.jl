@@ -9,9 +9,10 @@ using LinearAlgebra
         b = Dict(0.0 => [0.0, 1.0, 0.0])
         i = Dict(0.0 => 2)
         N = 3
-        @test DS.b_l_generation(b,i,0.0,N) == (b[0.0],i[0.0])
+        l = 0
+        @test DS.b_l_generation(b,i,l,N) == (b[0.0],i[0.0])
 
-        l = 1.0
+        l = 1
         nb, ni = DS.b_l_generation(b,i,l,N)
         @test nb[ni] == 2.0 || nb[ni] == -2.0
         @test all_in_range(1.0, nb, -2^l:2^l)
@@ -19,7 +20,7 @@ using LinearAlgebra
 
     #= Audet & Dennis 2006 pg. 203 generation of matrix L =#
     @testset "L_generation" begin
-        l = 2.0
+        l = 2
         N = 3
         mat = DS.L_generation(N, l)
         #Verify determinant
@@ -34,7 +35,7 @@ using LinearAlgebra
 
     #= Audet & Dennis 2006 pg. 203 generation of matrix B =#
     @testset "B_generation" begin
-        l = 3.0; N = 4
+        l = 3; N = 4
         L = DS.L_generation(N, l)
         b, I = DS.b_l_generation(Dict{T,Vector{T}}(), Dict{T,Int64}(), l, N)
         p = shuffle!(setdiff(1:N, I))

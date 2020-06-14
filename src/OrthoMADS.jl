@@ -13,14 +13,14 @@ OrthoMADS uses Halton sequences to generate an orthogonal basis of
 directiosn for the poll step. This is a deterministic process, unlike
 (`LTMADS`)[@ref].
 """
-mutable struct OrthoMADS{T} <: AbstractPoll
-    l::Int64
-	Δᵖmin::T
-	t₀::Int64
-    t::Int64
-    tmax::Int64
-    OrthoMADS(N) = OrthoMADS{Float64}(N::Int)
-    function OrthoMADS{T}(N::Int) where T l = 0
+mutable struct OrthoMADS{T,F} <: AbstractPoll
+    l::F
+    Δᵖmin::T
+    t₀::F
+    t::F
+    tmax::F
+    OrthoMADS(N::Int) = OrthoMADS{Float64,Int64}(N)
+    function OrthoMADS{T,F}(N::F) where {T,F}
         M = new()
         #Initialise as the Nth prime
         M.tmax = M.t = M.t₀ = prime(N)
@@ -37,19 +37,21 @@ Implements the OrthoMads update rules.
 """
 function MeshUpdate!(m::Mesh, o::OrthoMADS, result::IterationOutcome)
     if result == Unsuccessful
-        o.l += 1
+        m.l += 1
     elseif result == Dominating
-        o.l -= 1
+        m.l -= 1
     elseif result == Improving
-        o.l = o.l
+        m.l = m.l
     end
 
-    m.Δᵐ = min(1, 4.0^(-o.l))
-    m.Δᵖ = 2.0^(-o.l)
+    #Note that this replicates the operation done in the MeshUpdate!(::Mesh) function,
+    #but it necessary for the internal logic.
+    m.Δᵐ = min(1, 4.0^(-m.l))
+    m.Δᵖ = 2.0^(-m.l)
 
     if m.Δᵖ < o.Δᵖmin
         o.Δᵖmin = m.Δᵖ
-        o.t = o.l + o.t₀
+        o.t = m.l + o.t₀
     else
         o.t = 1 + o.tmax
     end
