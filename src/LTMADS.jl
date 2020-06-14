@@ -26,32 +26,6 @@ mutable struct LTMADS{T} <: AbstractPoll
     end
 end
 
-"""
-    MeshUpdate!(mesh::Mesh, improvement_found::Bool)
-
-Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
-barrier constraints with Audet & Dennis 2009 expression 2.4
-"""
-function MeshUpdate!(m::Mesh, ::LTMADS, result::IterationOutcome)
-    #if result == Unsuccessful
-    #    m.Δᵐ /= 4
-    #elseif result == Dominating && m.Δᵐ <= 0.25
-    #    m.Δᵐ *= 4
-    #elseif result == Improving
-    #    m.Δᵐ == m.Δᵐ
-    #end
-    if result == Unsuccessful
-        m.l += 1
-    #TODO investigate affect of allowing negative l
-    elseif result == Dominating && m.l > 0
-        m.l -= 1
-    elseif result == Improving
-        m.l == m.l
-    end
-    
-
-end
-
 
 """
     GenerateDirections(p::DSProblem{T}, DG::LTMADS{T})::Vector{Vector{T}}

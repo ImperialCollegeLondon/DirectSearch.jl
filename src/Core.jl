@@ -122,10 +122,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     end
 end
 
-function MeshUpdate!(p::DSProblem, result::IterationOutcome)
-    MeshUpdate!(p.mesh, p.poll, result)
-    MeshUpdate!(p.mesh)
-end
+MeshUpdate!(p::DSProblem, result::IterationOutcome) = MeshUpdate!(p.mesh, p.poll, result)
 
 (GetMeshSize(p::DSProblem{T})::T) where T = p.mesh.Δᵐ
 

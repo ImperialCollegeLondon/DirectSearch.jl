@@ -28,8 +28,21 @@ mutable struct Mesh{T} <: AbstractMesh
     end 
 end
 
-function MeshUpdate!(m::Mesh)
+"""
+    MeshUpdate!(mesh::Mesh, improvement_found::Bool)
+
+Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
+barrier constraints with Audet & Dennis 2009 expression 2.4.
+"""
+function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
+    if result == Unsuccessful
+        m.l += 1
+    elseif result == Dominating && m.l > 0
+        m.l -= 1
+    elseif result == Improving
+        m.l == m.l
+    end
+    
     m.Δᵐ = min(1, 4.0^(-m.l))
     m.Δᵖ = 2.0^(-m.l)
 end
-
