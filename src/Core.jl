@@ -200,7 +200,7 @@ end
 
 function EvaluateInitialPoint(p::DSProblem)
     p.user_initial_point == Nothing() && return
-    feasibility, _ = ConstraintEvaluation(p.constraints, p.user_initial_point)
+    feasibility = ConstraintEvaluation(p.constraints, p.user_initial_point)
     if feasibility == StrongInfeasible
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
@@ -212,7 +212,7 @@ function EvaluateInitialPoint(p::DSProblem)
         p.x_cost = p.objective(p.user_initial_point)
         CachePush(p, p.x, p.x_cost)
     end
-    p.user_initial_point = Nothing()
+    p.user_initial_point = nothing
 end
 
 
@@ -267,7 +267,6 @@ function Optimize!(p::DSProblem)
 
         #pass the result of search/poll to update
         MeshUpdate!(p, result)
-        ConstraintUpdate!(p, result)
 
         p.iteration += 1
     end
@@ -290,24 +289,32 @@ algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
 function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
     #TODO split into an evaluation function and an update function
+    #
+    println("")
 
     isempty(trial_points) && return Unsuccessful
 
+    #Variables to store the best evaluated points
     feasible_point = isnothing(p.x) ? Inf * ones(p.N) : p.x
     feasible_cost = isnothing(p.x_cost) ? Inf : p.x_cost
     infeasible_point = isnothing(p.i) ? Inf * ones(p.N) : p.i
     infeasible_cost = isnothing(p.i_cost) ? Inf : p.i_cost
-    h_max_lim = GetHmaxSum(p.constraints)
 
-    #The largest h_max value that is 
-    h_max_update_val = 0.0
+    #The current minimum hmax value for all collections
+    h_min = GetOldHmaxSum(p.constraints)
 
+    #Iterate over all trial points
     for point in trial_points
-        feasibility, h_max_sum = ConstraintEvaluation(p.constraints, point)
+        feasibility = ConstraintEvaluation(p.constraints, point)
 
         # Point violates h_max on at least one constraint collection
         feasibility == StrongInfeasible && continue
+
+        #Point is feasible for relaxed constraints, so evaluate it
         cost = function_evaluation(p, point)
+
+        #To determine if a point is dominating or improving the combined h_max is needed
+        h = GetViolationSum(p.constraints, point)
 
         # Conditions met for a dominant point
         if feasibility == Feasible && cost < feasible_cost
@@ -315,41 +322,44 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
             feasible_cost = cost
         # Conditions met for an improving point (worse cost, but closer to being feasible) or 
         # a dominant point (better cost and closer to feasibility)
-        elseif feasibility == WeakInfeasible && h_max_sum < h_max_lim
+        # Only record if it offers an improved constraint violation 
+        elseif feasibility == WeakInfeasible && h < h_min
             infeasible_point = point
             infeasible_cost = cost
-            h_max_lim = h_max_sum
-            h_max_update_val = max(h_max_update_val, h_max_lim)
+            h_min = h
         end
     end
+    
+    result = Unsuccessful 
 
-    outcome = Unsuccessful 
+    incum_i_cost = isnothing(p.i_cost) ? Inf : p.i_cost
+    incum_x_cost = isnothing(p.x_cost) ? Inf : p.x_cost
 
-    p_i_cost_tmp = isnothing(p.i_cost) ? Inf : p.i_cost
-    p_x_cost_tmp = isnothing(p.x_cost) ? Inf : p.x_cost
 
     # Dominates if there is a feasible improvement, or an infeasible point with
     # reduced violation (determined previously) as well as a cost lower than any
     # yet tested (feasible and infeasible)
-    if feasible_cost < p_x_cost_tmp 
-        outcome = Dominating
-    elseif infeasible_cost < min(p_i_cost_tmp, p_x_cost_tmp) && h_max_lim < GetHmaxSum(p.constraints)
-        outcome = Dominating
-    elseif h_max_lim < GetHmaxSum(p.constraints)
-        outcome = Improving
+    if feasible_cost < incum_x_cost 
+        result = Dominating
+    elseif infeasible_cost < incum_i_cost && h_min < GetOldHmaxSum(p.constraints)
+        result = Dominating
+    elseif h_min < GetOldHmaxSum(p.constraints)
+        result = Improving
     end
 
-    if feasible_cost < p_x_cost_tmp
+    if feasible_cost < incum_x_cost
         p.x = feasible_point
         p.x_cost = feasible_cost
-
     end
-    if infeasible_cost < p_i_cost_tmp || h_max_lim < GetHmaxSum(p.constraints)
+
+    if infeasible_cost < incum_i_cost || h_min < GetOldHmaxSum(p.constraints)
         p.i = infeasible_point
         p.i_cost = infeasible_cost
     end
+
+    UpdateConstraints(p.constraints, h_min, result, p.x, p.i)
      
-    return outcome
+    return result
 end
 
 """

@@ -77,36 +77,20 @@ mutable struct ConstraintCollection{T,C<:AbstractConstraint}
     count::Int
     ignore::Bool
     h_max::T
-    h_max_store::Vector{T}
-    h_max_update::Function
     result_aggregate::Function
-    function ConstraintCollection{T,C}(h_max::T, h_max_update::Function, aggregator::Function
+    violation::T
+    function ConstraintCollection{T,C}(h_max::T, aggregator::Function
                                       ) where {T,C<:AbstractConstraint} 
         c = new()
         c.constraints = []
         c.count = 0
         c.ignore = false
         c.h_max = h_max
-        c.h_max_store = []
-        c.h_max_update = h_max_update
         c.result_aggregate = aggregator
+        c.violation = 0
         return c
     end
 end   
-
-"""
-    h_max_update(c::ConstraintCollection, result::IterationOutcome)
-
-Update h_max according to the LTMADS default in eqn 2.5, Audet & Dennis 2009
-"""
-function h_max_update(c::ConstraintCollection, result::IterationOutcome)
-    if result == Improving
-        h_maxes = filter(h->h<c.h_max, c.h_max_store)
-        isempty(h_maxes) && return
-        c.h_max = max(h_maxes...)
-    end
-    #Otherwise h_max remains as it was
-end
 
 """
     AbstractProgressiveConstraint <: AbstractConstraint
@@ -142,6 +126,25 @@ mutable struct ProgressiveConstraint <: AbstractProgressiveConstraint
 end
 
 """
+    ConstraintCache{T}
+
+Store constraint information on an iteration-by-iteration basis.
+
+Stores the final infeasible point hmax value of the previous iteration.
+Also stores the collection hmax values computed for each point in an iteration.
+"""
+mutable struct ConstraintCache{T}
+    OldHmax::T
+    hmax_map::Dict{Vector{T},Vector{T}}
+    function ConstraintCache{T}() where T
+        c = new() 
+        c.OldHmax = Inf
+        c.hmax_map = Dict{Vector{T},Vector{T}}()
+        return c 
+    end
+end
+
+"""
     Constraints{T}() where T
 
 Create an object that constains multiple constraint collection objects.
@@ -152,15 +155,19 @@ an `ExtremeCollection` and a `ProgressiveCollection`.
 mutable struct Constraints{T}
     collections::Vector{ConstraintCollection}
     count::Int
+    cache::ConstraintCache{T}
     function Constraints{T}() where T
         c = new()
         c.count = 0
         c.collections = []
+        c.cache = ConstraintCache{T}()
+        
         AddExtremeCollection(c)
         AddProgressiveCollection(c)
         return c
     end
 end
+
 
 
 """
@@ -172,8 +179,6 @@ Return the total number of constraints of type `C` that are stored in all collec
                 sum([col.count for col in c.collections if typeof(col) == 
                      ConstraintCollection{T, C}])
 
-ConstraintUpdate!(p::AbstractProblem, result::IterationOutcome) = ConstraintUpdate!(p.constraints, result)
-
 """
     ConstraintUpdate!(c::Constraints, result::IterationOutcome)
 
@@ -182,21 +187,58 @@ between iterations.
 
 Currently will call `h_max_update` on each constraint.
 """
-function ConstraintUpdate!(c::Constraints, result::IterationOutcome)
-    for collection in c.collections
-        h_max_update(collection, result)
+function UpdateConstraints(c::Constraints, h_max, result::IterationOutcome, feasible, infeasible)
+
+    # Internal hmax should only be updated when the result is improving
+    if result == Improving
+
+        #Recorded hmax evaluations for each constraints
+        collections_hmax = c.cache.hmax_map[infeasible]
+        all_points_hmax = values(c.cache.hmax_map)
+
+        #Update internal hmax for each collection
+        for (i, collection) in enumerate(c.collections)
+            hmax_set = [c[i] for c in all_points_hmax]
+            if collections_hmax[i] == minimum(hmax_set)
+                SetCollectionHmax(collection, collections_hmax[i])
+            else
+                SetCollectionHmax(collection, maximum(filter(x->x<collections_hmax[i], hmax_set)))
+            end
+        end
+        SetOldHmax(c, h_max)
     end
+
+    ClearCache(c)
+end
+
+function ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, hmax::T) where T
+    if !haskey(c.cache.hmax_map, x) 
+        c.cache.hmax_map[x] = zeros(T, c.count)
+    end
+    c.cache.hmax_map[x][i] = hmax
+end
+
+function SetCollectionHmax(c::ConstraintCollection, new_hmax)
+    c.h_max = new_hmax
+end
+
+function ClearCache(c::Constraints{T}) where T
+    c.cache.hmax_map = Dict{Vector{T},Vector{T}}() 
+end
+
+function SetOldHmax(c::Constraints{T}, hmax::T) where T
+    c.cache.OldHmax = hmax
 end
 
 """
-    ConstraintEvaluation(constraints::Constraints{T}, x::Vector{T})::Tuple{ConstraintOutcome,T} where T
+    ConstraintEvaluation(constraints::Constraints{T}, p::Vector{T})::Tuple{ConstraintOutcome,T} where T
 
-Evaluate point `x` over all constraint collections in `constraints`. Returns a 
+Evaluate point `p` over all constraint collections in `constraints`. Returns a 
 ConstraintOutcome indicating the result of the evaluation:
 
-`Feasible`: `x` evaluated as feasible for all constraints (extreme and progressive barrier)
+`Feasible`: `p` evaluated as feasible for all constraints (extreme and progressive barrier)
 
-`WeakInfeasible`: `x` evaluated as feasible for all extreme barrier constraints, and had no 
+`WeakInfeasible`: `p` evaluated as feasible for all extreme barrier constraints, and had no 
 progressive barrier constraint violations greater than h_max
 
 `StrongInfeasible`: At least one extreme barrier constraint evaluated as infeasible, or at least
@@ -204,24 +246,34 @@ one progressive barrier constraint had a violation greater than h_max
 
 The second returned value is the sum of h_max values evaluated during the constraint checks.
 """
-function ConstraintEvaluation(constraints::Constraints{T}, x::Vector{T})::Tuple{ConstraintOutcome,T}where T
+function ConstraintEvaluation(constraints::Constraints{T}, p::Vector{T})::ConstraintOutcome where T
     # Initially define result as feasible
     eval_result = Feasible
-    for collection in constraints.collections
+    for (i,collection) in enumerate(constraints.collections)
         collection.ignore && continue
-        eval_result = ConstraintCollectionEvaluation(collection, x) 
+
+        result = ConstraintCollectionEvaluation(collection, p) 
+        ConstraintCachePush(constraints, p, i, collection.violation) 
+
+        if result == WeakInfeasible
+            eval_result = WeakInfeasible
+        end
+
         # A single completely infeasible result (h(x) > 0 for extreme, or h(x) > h_max for prog) means invalid
-        eval_result == StrongInfeasible && return StrongInfeasible, convert(T,0.0)
+        result == StrongInfeasible && return StrongInfeasible
     end
-    return eval_result, sum([isempty(p.h_max_store) ? 0 : p.h_max_store[end] for p in constraints.collections])
+
+    return eval_result
 end
 
 """
-    GetHmaxSum(c::Constraints)
+    GetSum(c::Constraints)
 
 Return the sum of all `h_max` values for each collection in `c`.
 """
-GetHmaxSum(c::Constraints) = sum([p.h_max for p in c.collections])
+(GetViolationSum(c::Constraints{T}, p::Vector{T})::T) where T = sum(get(c.cache.hmax_map, p, Inf))
+
+(GetOldHmaxSum(c::Constraints{T})::T) where T = c.cache.OldHmax
 
 """
     ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint}, x::Vector{T})::ConstraintOutcome where T
@@ -239,7 +291,7 @@ function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,Progr
         c.ignore && continue
         sum += collection.result_aggregate(c.f(x))
     end
-    push!(collection.h_max_store, sum)
+    collection.violation = sum
     if sum <= collection.h_max 
         return sum == 0.0 ? Feasible : WeakInfeasible
     else 
@@ -372,10 +424,9 @@ multiple values of h_max at the same time.
 AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
 
 function AddProgressiveCollection(p::Constraints{T}; h_max=Inf, 
-                                  h_max_update::Function=h_max_update, 
                                   aggregator::Function=x->max(0,x)^2)::CollectionIndex where T
     push!(p.collections,
-          ConstraintCollection{T,ProgressiveConstraint}(h_max, h_max_update, aggregator))
+          ConstraintCollection{T,ProgressiveConstraint}(h_max, aggregator))
     p.count += 1
 
     return CollectionIndex(p.count)
@@ -392,9 +443,8 @@ refers to the new collection.
     AddExtremeCollection(p.constraints)
 
 function AddExtremeCollection(p::Constraints{T})::CollectionIndex where T
-    f1() = error("Should not be calling h_max update for an extreme constraint collection")
-    f2() = error("Should not be calling aggregator update for an extreme constraint collection")
-    push!(p.collections, ConstraintCollection{T,ExtremeConstraint}(0.0, f1, f2))
+    f() = error("Should not be calling aggregator update for an extreme constraint collection")
+    push!(p.collections, ConstraintCollection{T,ExtremeConstraint}(0.0, f))
     p.count += 1
     return CollectionIndex(p.count)
 end
