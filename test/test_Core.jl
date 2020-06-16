@@ -132,8 +132,8 @@
         @test DS.EvaluatePoint!(p, [[5.0, 4.0, 4.0]]) == DS.Unsuccessful
 
         #Infeasible point with worse cost but less violation is improving
-        p = setup(p->AddProgressiveConstraint(p, x->x[1] > 0 ? 0 : -x[1]))
-        @test DS.EvaluatePoint!(p, [[-5.0, 4.0, 4.0]]) == DS.Improving
+        p = setup(p->AddProgressiveConstraint(p, x->-x[1]), initial=[-6.0, 4.0, 4.0])
+        @test DS.EvaluatePoint!(p, [[-5.0, 11.0, 4.0]]) == DS.Improving
 
         #Infeasible point with improving cost and less violation is dominating 
         p = setup(p->AddProgressiveConstraint(p, x->x[1] > 0 ? 0 : -x[1]))

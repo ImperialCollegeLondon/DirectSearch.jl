@@ -1,4 +1,5 @@
 @testset "Constraints" begin
+    #TODO needs to be updated for the new constraint design and interaction with Core
     T = Float64
     N = 3
 
