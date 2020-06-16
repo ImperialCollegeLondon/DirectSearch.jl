@@ -64,7 +64,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
 
     meshscale::Vector{T}
 
-    cache::PointCache{T}
+    cache::AbstractCache
 
     num_procs::Int
     max_simultanious_evaluations::Int
