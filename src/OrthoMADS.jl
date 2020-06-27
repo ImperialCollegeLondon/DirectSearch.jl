@@ -112,13 +112,10 @@ end
 
 
 function AdjustedHalton(halt, n, l)
-    #A function that describes a family of directions
     q = AdjustedHaltonFamily(halt)
-    #Need to find the argument, α, of q that maximises l2 norm of result, s.t. it is ≤2^(|l|/2)
-    #∃ optimal solution satisfying α ≥ 2^(|l|/2)/√n -0.5, ∴ use as starting point
     α = (2^(abs(l)/2)/sqrt(n)) - 0.5
     
-    α = bad_argmax(α, x -> norm(q(x)), 2^(abs(l)/2))
+    α = argmax(α, x -> norm(q(x)), 2^(abs(l)/2))
     
     return q(α)
 end
@@ -131,7 +128,7 @@ end
 
 #TODO use a better defined algorithm for this operation
 #(some kind of numerical line search?)
-function bad_argmax(x, f, lim; iter_lim = 15)
+function argmax(x, f, lim; iter_lim = 15)
     bump = 1
     iter = 1
     

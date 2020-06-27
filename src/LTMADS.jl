@@ -70,7 +70,8 @@ function B′_generation(B, N; perm=shuffle(1:N))
     return B′
 end
 
-function b_l_generation(b::Dict{T,Vector{T}}, i::Dict{T,Int}, l::Int, N::Int) where T
+function b_l_generation(b::Dict{T,Vector{T}}, i::Dict{T,Int}, l::Int, N::Int
+                       ) where T
     if !haskey(b, l)
         i[l] = rand(1:N)
         b[l] = zeros(T, N)
