@@ -9,7 +9,6 @@ export DSProblem, ProblemSense, SetObjective, SetInitialPoint, SetVariableRange,
 @enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit
 
 
-
 """
 	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(), 
                          search::AbstractSearch=NullSearch(),
@@ -254,6 +253,7 @@ those constraints.
 function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 
     EvaluateInitialPoint(p)
+    CacheOrderPush(p)
 
     while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
 
@@ -263,7 +263,7 @@ function Optimize!(p::DSProblem)
             result = Poll(p)
         end
 
-        CachePush(p)
+        result != Unsuccessful && CacheOrderPush(p)
 
         #pass the result of search/poll to update
         MeshUpdate!(p, result)
