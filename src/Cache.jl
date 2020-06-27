@@ -43,6 +43,14 @@ end
 #only the other that points are evaluated
 function CachePush(c::PointCache{T}, x::Vector{T}, cost::T) where T
     push!(c.costs, x=>cost)
+    #push!(c.order, x)
+end
+
+
+
+#TODO generalise to both feasible and infeasible
+CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x)
+function CacheOrderPush(c::PointCache{T}, x::Vector{T}) where T
     push!(c.order, x)
 end
 
