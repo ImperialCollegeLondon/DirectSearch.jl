@@ -1,10 +1,16 @@
+"""
+    PointCache{T} <: AbstractCache
+
+An abstract cache subtype that contains a dictionary of points/costs and a vector
+that stores the order of incumbent points.
+"""
 mutable struct PointCache{T} <: AbstractCache
     #TODO: Record the type of point: incumbent, violates unrelaxable constraints,
     #violates relaxable constraints for iteration i, etc.
     
     #TODO: Set maximum cache size
 
-    #TODO: (maybe) Implement more efficient storage/search strategy
+    #TODO: An alternative data structure would be much faster
     
     #Map a point to a cost value
     costs::Dict{Vector{T},T} 
@@ -37,21 +43,21 @@ function CachePush(p::AbstractProblem)
     p.i != nothing && CachePush(p.cache, p.i, p.i_cost)
 end
 
-
-
-#TODO order should be changed as it does not necessarily reflected order of incumbent,
-#only the other that points are evaluated
 function CachePush(c::PointCache{T}, x::Vector{T}, cost::T) where T
     push!(c.costs, x=>cost)
-    #push!(c.order, x)
 end
 
+#TODO add equivilent for infeasible
+"""
+    CacheOrderPush(p::AbstractProblem{T}) where T
 
-
-#TODO generalise to both feasible and infeasible
-CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x)
-function CacheOrderPush(c::PointCache{T}, x::Vector{T}) where T
-    push!(c.order, x)
+Add the feasible incumbent point to the order vector.
+"""
+CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x) 
+function CacheOrderPush(c::PointCache{T}, 
+                        x::Union{Vector{T},Nothing}, 
+                       ) where T
+    x !== nothing && !(x in c.order[end-1:end]) && push!(c.order, x)
 end
 
 """

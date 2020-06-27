@@ -1,8 +1,19 @@
+"""
+    Poll(p::DSProblem{T})::IterationOutcome where T
+
+Generate points and call evaluate on them.
+"""
 function Poll(p::DSProblem{T})::IterationOutcome where T
     points = GeneratePollPoints(p, p.mesh)
     return EvaluatePoint!(p, points)
 end
 
+"""
+    GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} where T
+
+Generate a set of directions with the configured polling algorithm, then return
+the set of points these directions give from the incumbent points.
+"""
 function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh
                            )::Vector{Vector{T}} where T
     points = []

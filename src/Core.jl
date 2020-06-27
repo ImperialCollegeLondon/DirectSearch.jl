@@ -288,8 +288,7 @@ Determine whether the set of trial points result in a dominating, improving, or 
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
 function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
-    #TODO split into an evaluation function and an update function
-    #
+    #TODO could split into an evaluation function and an update function
     println("")
 
     isempty(trial_points) && return Unsuccessful
