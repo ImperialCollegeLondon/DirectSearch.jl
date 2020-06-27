@@ -4,8 +4,8 @@ export DefaultExtremeRef, DefaultProgressiveRef, AddExtremeConstraint, AddExtrem
 """
     @enum IterationOutcome
 
-Has values Dominating, Improving, or Unsuccessful. Corresponding to the three iteration outcomes in
-progressive barrier direct search algorithms.
+Has values Dominating, Improving, or Unsuccessful. Corresponding to the three 
+iteration outcomes in MADS-PB.
 """
 @enum IterationOutcome begin
     Dominating
@@ -16,11 +16,16 @@ end
 """
     @enum ConstraintOutcome
 
-Has the values `Feasible`, `WeakInfeasible`, or `StrongInfeasible` to classify the outcome of the 
-constraint evaluations of a point. A `Feasible` point meets the requirement of all constraints
-with no relaxation. A `WeakInfeasible` outcome requires one or more constraints to be relaxed, but less than
-their maximum amount. A `StrongInfeasible` outcome indicates one or more constraints was violated beyond its
-maximum relaxation amount.
+Has the values `Feasible`, `WeakInfeasible`, or `StrongInfeasible` to classify 
+the outcome of the constraint evaluations of a single point. 
+
+A `Feasible` point meets the requirement of all constraints with no relaxation. 
+
+A `WeakInfeasible` outcome has at least one relaxable constraint violated 
+but no unrelaxable constraints violated.
+
+A `StrongInfeasible` outcome indicates at least one unrelaxable constraint has
+been violated or the relaxable constraint violation is reater than hmax.
 """
 @enum ConstraintOutcome begin
     Feasible
@@ -31,7 +36,8 @@ end
 """
     CollectionIndex
 
-An `Int` wrapper that is used for indexing constraint collections within a `Constraints` object.
+An `Int` wrapper that is used for indexing constraint collections within a 
+`Constraints` object.
 """
 struct CollectionIndex
     value::Int
@@ -40,7 +46,8 @@ end
 """
     CollectionIndex
 
-An `Int` wrapper that is used for indexing constraints within a `ConstraintCollection` object.
+An `Int` wrapper that is used for indexing constraints within a 
+`ConstraintCollection` object.
 """
 struct ConstraintIndex
     value::Int
@@ -49,28 +56,37 @@ end
 """
     DefaultExtremeRef
     
-The collection index that refers to the default location of extreme barrier constraints.
+The collection index that refers to the default location of extreme barrier 
+constraints.
 """
 const DefaultExtremeRef = CollectionIndex(1)
 
 """
     DefaultProgressiveRef
     
-The collection index that refers to the default location of progressive barrier constraints.
+The collection index that refers to the default location of progressive barrier 
+constraints.
 """
 const DefaultProgressiveRef = CollectionIndex(2)
 
 
 """
-    ConstraintCollection{T,C}(h_max::T, h_max_update::Function, aggregator::Function) where {T,C<:AbstractConstraint}
+    ConstraintCollection{T,C}(h_max::T, 
+                              h_max_update::Function, 
+                              aggregator::Function
+                             ) where {T,C<:AbstractConstraint}
 
-Contains multiple constraints of the same type that have the same settings applied to them.
+Contains multiple constraints of the same type that have the same settings 
+applied to them.
 
-`h_max` is the initial hmax value. `h_max_update` is a function that should update `h_max` given
-an `IterationOutcome` value. `aggregator` is a function that will bring all constraint violations of a collection
-into a single `h` result.
+`h_max` is the initial hmax value. 
+`h_max_update` is a function that should update `h_max` given an 
+`IterationOutcome` value. 
+`aggregator` is a function that will bring all constraint violations of a 
+collection into a single `h` result.
 
-Defaults for each of these values is set in the `AddProgressiveCollection` and `AddExtremeCollection` functions.
+Defaults for each of these values are set in the `AddProgressiveCollection` and 
+`AddExtremeCollection` functions.
 """
 mutable struct ConstraintCollection{T,C<:AbstractConstraint}
     constraints::Vector{C}
@@ -114,10 +130,17 @@ end
 """
     ProgressiveConstraint(f::Function)
 
-Create a progressive barrier constraint. Function `f` should take a vector argument 
-and return a value in the range 0<=v<Inf to indicate the amount the constraint has
-been violated by the input vector. If input is a feasible point then the constraint 
-function should return zero. 
+Create a progressive barrier constraint. 
+
+Argument `f` is a function that should take a single vector argument and 
+return a value that gives the amount the constraint function has been 
+violated. 
+
+A value greater than $0$ indicates the function has been violated, $0$ shows
+that the input lies on the constraint, and negative numbers show a feasible
+value. 
+
+Negative numbers may be truncated to $0$ without affecting the algorithm.
 """
 mutable struct ProgressiveConstraint <: AbstractProgressiveConstraint
     f::Function
@@ -147,10 +170,11 @@ end
 """
     Constraints{T}() where T
 
-Create an object that constains multiple constraint collection objects.
+Create an object that constains multiple `ConstraintCollection` objects and their
+corresponding `ConstraintCache`.
 
-Upon creation `Constraints` is automativally populated with two constraint collections,
-an `ExtremeCollection` and a `ProgressiveCollection`.
+Upon creation `Constraints` is automaticvally populated with two constraint 
+collections, an `ExtremeCollection` and a `ProgressiveCollection`.
 """
 mutable struct Constraints{T}
     collections::Vector{ConstraintCollection}
@@ -175,7 +199,7 @@ end
 
 Return the total number of constraints of type `C` that are stored in all collections.
 """
-(CollectionTypeCount(c::Constraints{T}, C::AbstractConstraint)::Int) where T = 
+(CollectionTypeCount(c::Constraints{T}, C::AbstractConstraint)::Int) where T 
                 sum([col.count for col in c.collections if typeof(col) == 
                      ConstraintCollection{T, C}])
 
@@ -183,39 +207,50 @@ Return the total number of constraints of type `C` that are stored in all collec
     ConstraintUpdate!(c::Constraints, result::IterationOutcome)
 
 Perform all necessary actions required to update a problem's constraints
-between iterations. 
-
-Currently will call `h_max_update` on each constraint.
+between iterations and clear the constraint cache.
 """
 function UpdateConstraints(c::Constraints, h_max, result::IterationOutcome, feasible, infeasible)
 
     # Internal hmax should only be updated when the result is improving
     if result == Improving
-
-        #Recorded hmax evaluations for each constraints
+        # hmax values per collection for the infeasible point's overall hmax value
         collections_hmax = c.cache.hmax_map[infeasible]
+
+        # collection hmax values for all considered points
         all_points_hmax = values(c.cache.hmax_map)
 
         #Update internal hmax for each collection
         for (i, collection) in enumerate(c.collections)
+            #The hmax value from the collection for each considered point
             hmax_set = [c[i] for c in all_points_hmax]
+ 
             if collections_hmax[i] == minimum(hmax_set)
+                # if the infeasible point's hmax is minimum considered, then use that
                 SetCollectionHmax(collection, collections_hmax[i])
             else
+                # otherwise use the largest value less than the the infeasible point's
                 SetCollectionHmax(collection, maximum(filter(x->x<collections_hmax[i], hmax_set)))
             end
         end
         SetOldHmax(c, h_max)
     end
 
+    # Cache is only maintained over a single iteration
     ClearCache(c)
 end
 
-function ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, hmax::T) where T
+
+"""
+    ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
+
+For point `x` and constraint collection `i` push the violation function result
+`h` to the cache.
+"""
+function ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
     if !haskey(c.cache.hmax_map, x) 
         c.cache.hmax_map[x] = zeros(T, c.count)
     end
-    c.cache.hmax_map[x][i] = hmax
+    c.cache.hmax_map[x][i] = h
 end
 
 function SetCollectionHmax(c::ConstraintCollection, new_hmax)
@@ -267,22 +302,29 @@ function ConstraintEvaluation(constraints::Constraints{T}, p::Vector{T})::Constr
 end
 
 """
-    GetSum(c::Constraints)
+    GetViolationSum(c::Constraints, p::Vector{T})::T where T
 
-Return the sum of all `h_max` values for each collection in `c`.
+Return the sum of all cached `h` values for point `p`.
+
+If `p` hasn't been evaluated (which generally shouldn't happen) then 
+return $\infty$.
 """
-(GetViolationSum(c::Constraints{T}, p::Vector{T})::T) where T = sum(get(c.cache.hmax_map, p, Inf))
+(GetViolationSum(c::Constraints{T}, p::Vector{T})::T) where T = 
+                                            sum(get(c.cache.hmax_map, p, Inf))
+
 
 (GetOldHmaxSum(c::Constraints{T})::T) where T = c.cache.OldHmax
 
 """
-    ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint}, x::Vector{T})::ConstraintOutcome where T
+    ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint}, 
+                                   x::Vector{T})::ConstraintOutcome where T
                                
+Evalute every constraint within progressive constraint collection `collection` 
+for point `x`.
 
-Evalute every constraint within progressive constraint collection `collection` for point `x`.
-
-If the aggregate value of the constraint evaluations exceeds h_max then a `StrongInfeasible` is 
-returned. If the value is 0.0 then `Feasible` is returned. Otherwise `WeakInfeasible` is returned.
+If the aggregate value of the constraint evaluations exceeds the collection's 
+h_max then a `StrongInfeasible` is returned. If the value is less than or equal
+to 0.0 then `Feasible` is returned. Otherwise `WeakInfeasible` is returned.
 """
 function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
                                         x::Vector{T})::ConstraintOutcome where T
@@ -300,12 +342,14 @@ function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,Progr
 end
 
 """
-ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint}, x::Vector{T})::ConstraintOutcome where T
+    ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint}, 
+                                   x::Vector{T})::ConstraintOutcome where T
 
-Evalute every constraint within extreme constraint collection `collection` for point `x`.
+Evalute every constraint within extreme constraint collection `collection` for 
+point `x`.
 
-If any constraint returns false then a `StrongInfeasible` result is returned. Otherwise a 
-`Feasible` result is returned.
+If any constraint returns false  or a value greater than $0$ then a 
+`StrongInfeasible` result is returned. Otherwise a `Feasible` result is returned.
 """
 function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint}, 
                                         x::Vector{T})::ConstraintOutcome where T
@@ -321,16 +365,22 @@ end
 
 
 """
-    AddExtremeConstraint(p::AbstractProblem, c::Function)::Tuple(ConstraintIndex, CollectionIndex)
+    AddExtremeConstraint(p::AbstractProblem, c::Function
+                         index::CollectionIndex=CollectionIndex(1)
+                        )::ConstraintIndex where T
 
 Register a single function that defines an extreme barrier constraint. Return
 a constraint index.
 
-The provided function should take a vector input and return a boolean value 
-indicating if the constraint has been met or not.
+The provided function should take a vector input and return a boolean or numeric
+value indicating if the constraint has been met or not. `true` or less than or 
+equal to $0$ indicates the constraint has been met. `false` or greater than $0$
+shows the constraint has been violated.
 
-The `index` argument can be specified to give a collection to add the constraint to. The specified
-collection must exist, and must be able to accept extreme barrier constraints.
+The `index` argument can be specified to give a collection to add the constraint 
+to. The specified collection must exist, and must be able to accept extreme 
+barrier constraints. If `index` is not specified then it is added to collection 
+$1$, the default extreme constraint collection.
 """
 AddExtremeConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(1)
                     ) = AddExtremeConstraint(p.constraints, f, index=index)
@@ -369,9 +419,15 @@ end
 Register a single function that defines a progressive barrier constraint. Return
 an index that refers to the constraint.
 
-The provided function should take a vector input and return a violation amount. The
-return type should be the same as the type that the problem is defined as (default 
-is `Float64`).
+The provided function should take a vector input and return a numeric value 
+indicating if the constraint has been met or not. Less than or 
+equal to $0$ indicates the constraint has been met. $0$ shows the constraint has 
+been violated.
+
+The `index` argument can be specified to give a collection to add the constraint 
+to. The specified collection must exist, and must be able to accept progressive 
+barrier constraints. If `index` is not specified then it is added to collection 
+$2$, the default progressive barrier constraint collection.
 """
 AddProgressiveConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(2)
                         ) = AddProgressiveConstraint(p.constraints, f, index=index)
@@ -416,10 +472,7 @@ The default constraint settings match those from Audet & Dennis 2009:
 
 `h_max_update`: Sets h_max to the largest valid h evaluation if an iteration is improving
 
-`aggregator`: Creates h as ∑k(x) where k=max(0,x)^2
-
-Note that the aggregator differs from that proposed by Audet & Dennis 2009 due to supporting
-multiple values of h_max at the same time.
+`aggregator`: Creates h as $\sum k(x)$ where k=max(0,x)^2
 """
 AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
 
