@@ -397,17 +397,17 @@ using LinearAlgebra
         @test f(5) ≈ [0.0,-2.0,-3.0,-4.0]
     end
 
-    @testset "bad_argmax" begin
+    @testset "argmax" begin
         #General argmax test, due to the rounding also done, being within 0.1 is more than
         #sufficient 
         f(x) = 0.1x^2 + x
-        @test isapprox(DS.bad_argmax(0, f, 6), 4.2195444, atol=0.1)
+        @test isapprox(DS.argmax(0, f, 6), 4.2195444, atol=0.1)
         
         g = DS.AdjustedHaltonFamily([7/8,5/9,11/25,1/49])
-        @test isapprox(DS.bad_argmax(0.0, x->norm(g(x)), 1.0), 0.8, atol = 0.1)
+        @test isapprox(DS.argmax(0.0, x->norm(g(x)), 1.0), 0.8, atol = 0.1)
 
         h = DS.AdjustedHaltonFamily([7/16,22/27,22/25,2/49])
-        @test isapprox(DS.bad_argmax(5.156854249492381, x->norm(h(x)), 11.313708498984761), 11.5, atol = 0.1)
+        @test isapprox(DS.argmax(5.156854249492381, x->norm(h(x)), 11.313708498984761), 11.5, atol = 0.1)
     end
 
     @testset "AdjustedHalton" begin
