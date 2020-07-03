@@ -136,11 +136,11 @@ Argument `f` is a function that should take a single vector argument and
 return a value that gives the amount the constraint function has been 
 violated. 
 
-A value greater than $0$ indicates the function has been violated, $0$ shows
+A value greater than 0 indicates the function has been violated, 0 shows
 that the input lies on the constraint, and negative numbers show a feasible
 value. 
 
-Negative numbers may be truncated to $0$ without affecting the algorithm.
+Negative numbers may be truncated to 0 without affecting the algorithm.
 """
 mutable struct ProgressiveConstraint <: AbstractProgressiveConstraint
     f::Function
@@ -192,14 +192,12 @@ mutable struct Constraints{T}
     end
 end
 
-
-
 """
     CollectionTypeCount(c::Constraints{T}, C::AbstractConstraint)::Int where T
 
 Return the total number of constraints of type `C` that are stored in all collections.
 """
-(CollectionTypeCount(c::Constraints{T}, C::AbstractConstraint)::Int) where T 
+(CollectionTypeCount(c::Constraints{T}, C::AbstractConstraint)::Int) where T =
                 sum([col.count for col in c.collections if typeof(col) == 
                      ConstraintCollection{T, C}])
 
@@ -307,7 +305,7 @@ end
 Return the sum of all cached `h` values for point `p`.
 
 If `p` hasn't been evaluated (which generally shouldn't happen) then 
-return $\infty$.
+return ``\\infty``.
 """
 (GetViolationSum(c::Constraints{T}, p::Vector{T})::T) where T = 
                                             sum(get(c.cache.hmax_map, p, Inf))
@@ -348,7 +346,7 @@ end
 Evalute every constraint within extreme constraint collection `collection` for 
 point `x`.
 
-If any constraint returns false  or a value greater than $0$ then a 
+If any constraint returns false  or a value greater than 0 then a 
 `StrongInfeasible` result is returned. Otherwise a `Feasible` result is returned.
 """
 function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint}, 
@@ -374,13 +372,13 @@ a constraint index.
 
 The provided function should take a vector input and return a boolean or numeric
 value indicating if the constraint has been met or not. `true` or less than or 
-equal to $0$ indicates the constraint has been met. `false` or greater than $0$
+equal to 0 indicates the constraint has been met. `false` or greater than 0
 shows the constraint has been violated.
 
 The `index` argument can be specified to give a collection to add the constraint 
 to. The specified collection must exist, and must be able to accept extreme 
 barrier constraints. If `index` is not specified then it is added to collection 
-$1$, the default extreme constraint collection.
+1, the default extreme constraint collection.
 """
 AddExtremeConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(1)
                     ) = AddExtremeConstraint(p.constraints, f, index=index)
@@ -421,13 +419,13 @@ an index that refers to the constraint.
 
 The provided function should take a vector input and return a numeric value 
 indicating if the constraint has been met or not. Less than or 
-equal to $0$ indicates the constraint has been met. $0$ shows the constraint has 
+equal to 0 indicates the constraint has been met. 0 shows the constraint has 
 been violated.
 
 The `index` argument can be specified to give a collection to add the constraint 
 to. The specified collection must exist, and must be able to accept progressive 
 barrier constraints. If `index` is not specified then it is added to collection 
-$2$, the default progressive barrier constraint collection.
+2, the default progressive barrier constraint collection.
 """
 AddProgressiveConstraint(p::AbstractProblem, f::Function; index::CollectionIndex=CollectionIndex(2)
                         ) = AddProgressiveConstraint(p.constraints, f, index=index)
@@ -472,7 +470,7 @@ The default constraint settings match those from Audet & Dennis 2009:
 
 `h_max_update`: Sets h_max to the largest valid h evaluation if an iteration is improving
 
-`aggregator`: Creates h as $\sum k(x)$ where k=max(0,x)^2
+`aggregator`: Creates h as ``\\sum k(x)`` where ``k=\\max(0,x)^2``
 """
 AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
 
