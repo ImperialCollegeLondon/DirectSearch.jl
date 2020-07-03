@@ -54,10 +54,12 @@ function RandomPointsFromCache(N::Int, c::PointCache{T}, dist::T, s::RandomSearc
                               )::Vector{Vector{T}} where T
     mesh_points = CacheRandomSample(c, s.M)     
 
-    for i in 1:s.M
-        dir = rand(N)
-        dir *= dist/norm(dir)
-        mesh_points[i] += dir
+    if length(mesh_points) == s.M
+        for i in 1:s.M
+            dir = rand(N)
+            dir *= dist/norm(dir)
+            mesh_points[i] += dir
+        end
     end
 
     return mesh_points
