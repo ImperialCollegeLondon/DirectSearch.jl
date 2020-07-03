@@ -1,10 +1,9 @@
 # DirectSearch.jl
 <!-- Currently isn't a stable release -->
 <!--[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://EdwardStables.github.io/DirectSearch.jl/stable)-->
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://EdwardStables.github.io/DirectSearch.jl/dev)
-[![Build Status](https://travis-ci.com/EdwardStables/DirectSearch.jl.svg?branch=master)](https://travis-ci.com/EdwardStables/DirectSearch.jl)
+<!--[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://EdwardStables.github.io/DirectSearch.jl/dev)-->
+<!--[![Build Status](https://travis-ci.com/EdwardStables/DirectSearch.jl.svg?branch=master)](https://travis-ci.com/EdwardStables/DirectSearch.jl)-->
 
-*This is a temporary mirror of the [main project repo](https://github.com/ImperialCollegeLondon/DirectSearch.jl)*
 
 DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
 
@@ -12,7 +11,7 @@ DirectSearch.jl provides a framework for the implementation of direct search alg
 
 This package is not yet registered. Install with:
 ```julia
-pkg> add https://github.com/EdwardStables/DirectSearch.jl
+pkg> add https://github.com/ImperialCollegeLondon/DirectSearch.jl
 ```
 And import as with any Julia package:
 ```julia
@@ -21,7 +20,7 @@ using DirectSearch
 
 ## Usage
 
-A more detailed guide is available in the [documentation](https://EdwardStables.github.io/DirectSearch.jl/dev/man/usage).
+A more detailed guide is available in the [documentation](https://ImperialCollegeLondon.github.io/DirectSearch.jl/dev/man/usage) *documentation is currently unavailable*.
 
 A problem is defined with `DSProblem(N)`, where N is the dimension of the problem. The objective function and initial point need to be set before optimization can run.
 ```julia
