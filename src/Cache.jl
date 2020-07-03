@@ -57,7 +57,11 @@ CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x)
 function CacheOrderPush(c::PointCache{T}, 
                         x::Union{Vector{T},Nothing}, 
                        ) where T
-    x !== nothing && !(x in c.order[end-1:end]) && push!(c.order, x)
+    x === nothing && return 
+
+    if length(c.order) == 0 || x != c.order[end]
+        push!(c.order, x) 
+    end
 end
 
 """

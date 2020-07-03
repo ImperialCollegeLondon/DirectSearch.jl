@@ -25,19 +25,27 @@ end
 
         DS.CachePush(c, [1.0,2.0,3.0], 4.0)
         @test c.costs[[1.0,2.0,3.0]] == 4.0
-        @test c.order[1] == [1.0,2.0,3.0]
 
         DS.CachePush(c, [1.0,2.0,3.0], 6.0)
         @test c.costs[[1.0,2.0,3.0]] == 6.0
-        @test c.order[1] == [1.0,2.0,3.0]
-        @test c.order[2] == [1.0,2.0,3.0]
 
         DS.CachePush(c, [4.21, 45.0, 1234321.0], 2112.0)
         @test c.costs[[1.0,2.0,3.0]] == 6.0
         @test c.costs[[4.21, 45.0, 1234321.0]] == 2112.0
-        @test c.order[1] == [1.0,2.0,3.0]
-        @test c.order[2] == [1.0,2.0,3.0]
-        @test c.order[3] == [4.21, 45.0, 1234321.0]
+    end
+
+    @testset "CacheOrderPush" begin
+        @test c.order == []
+        DS.CacheOrderPush(c, nothing)
+        @test c.order == []
+        DS.CacheOrderPush(c, [1.0, 2.0, 3.0])
+        @test c.order == [[1.0, 2.0, 3.0]]
+        DS.CacheOrderPush(c, [2.0, 2.0, 2.0])
+        @test c.order == [[1.0, 2.0, 3.0], [2.0, 2.0, 2.0]]
+        DS.CacheOrderPush(c, [2.0, 2.0, 2.0])
+        @test c.order == [[1.0, 2.0, 3.0], [2.0, 2.0, 2.0]]
+        DS.CacheOrderPush(c, [1.0, 2.0, 3.0])
+        @test c.order == [[1.0, 2.0, 3.0], [2.0, 2.0, 2.0],[1.0, 2.0, 3.0]]
     end
 
     @testset "CacheQuery" begin
