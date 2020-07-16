@@ -1,8 +1,10 @@
 # DirectSearch.jl
 <!-- Currently isn't a stable release -->
-<!--[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://EdwardStables.github.io/DirectSearch.jl/stable)-->
-<!--[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://EdwardStables.github.io/DirectSearch.jl/dev)-->
-<!--[![Build Status](https://travis-ci.com/EdwardStables/DirectSearch.jl.svg?branch=master)](https://travis-ci.com/EdwardStables/DirectSearch.jl)-->
+<!--[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://imperialcollegelondon.github.io/DirectSearch.jl/stable)-->
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://imperialcollegelondon.github.io/DirectSearch.jl/dev)
+![](https://github.com/ImperialCollegeLondon/DirectSearch.jl/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/ImperialCollegeLondon/DirectSearch.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/ImperialCollegeLondon/DirectSearch.jl)
+
 
 
 DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
@@ -54,7 +56,7 @@ The results can also be found in a similar manner:
 ```
 *(Functions for accessing this data will be added in future.)*
 
-Two kinds of constraints are included, progressive barrier, and extreme barrier constraints. As with the objective function, these should be specified as a Julia function that takes a vector, and returns a value. 
+Two kinds of constraints are included, progressive barrier, and extreme barrier constraints. As with the objective function, these should be specified as a Julia function that takes a vector, and returns a value.
 
 ### Extreme Barrier Constraints
 Extreme barrier constraints are constraints that cannot be violated, and their function should return boolean (true for a feasible point, false for infeasible), or a numerical value giving the constraint violation amount (≤0 for feasible, >0 for infeasible). Added with `AddExtremeConstraint`:
