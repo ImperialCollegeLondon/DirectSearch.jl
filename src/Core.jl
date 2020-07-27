@@ -190,6 +190,19 @@ function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
     p.user_initial_point = x
 end
 
+"""
+    SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
+
+Set/unset opportunistic evaluation (enables by default).
+
+When using opportunistic evaluation the first allowable evaluated point with an 
+improved cost is set as the new incumbent solution. If using progressive barrier
+constraints this point may be infeasible.
+"""
+function SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=false)
+    p.config.opportunistic = opportunistic
+end
+
 function EvaluateInitialPoint(p::DSProblem)
     p.user_initial_point == Nothing() && return
     feasibility = ConstraintEvaluation(p.constraints, p.user_initial_point)
