@@ -2,7 +2,6 @@ using DirectSearch
 using Test
 
 include("./test_OrthoMADS.jl")
-
 include("./test_LTMADS.jl")
 include("./test_Cache.jl")
 include("./test_Search.jl")

@@ -144,4 +144,16 @@
         p.constraints.collections[2].h_max = -4.0
         @test DS.EvaluatePoint!(p, [[-1.0, 4.0, 4.0]]) == DS.Unsuccessful
     end
+
+    @testset "Opportunistic Evaluation" begin
+        #Initialisation
+        p = DSProblem(3)
+        @test p.config.opportunistic == false
+
+        p = DSProblem(3, opportunistic=false)
+        @test p.config.opportunistic == false
+
+        p = DSProblem(3, opportunistic=true)
+        @test p.config.opportunistic == true
+    end
 end
