@@ -295,8 +295,6 @@ algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
 function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
     #TODO could split into an evaluation function and an update function
-    println("")
-
     isempty(trial_points) && return Unsuccessful
 
     #Variables to store the best evaluated points
