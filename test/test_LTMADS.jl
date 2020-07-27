@@ -93,7 +93,7 @@ using LinearAlgebra
         LTM = DS.DSProblem{T}(3, poll=LTMADS{T}())
         @test !isdefined(LTM, :objective)
         @test isdefined(LTM, :constraints)
-        @test LTM.sense == DS.Min
+        @test LTM.config.sense == DS.Min
         @test LTM.N == 3
         @test LTM.status == DS.Unoptimized
     end

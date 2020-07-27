@@ -7,8 +7,8 @@
         @test typeof(p.search) == NullSearch
         @test typeof(p.poll) == LTMADS{T}
         @test p.status == DS.Unoptimized
-        @test p.sense == DS.Min
-        @test p.max_simultanious_evaluations == 1
+        @test p.config.sense == DS.Min
+        @test p.config.max_simultanious_evaluations == 1
         @test typeof(p.mesh) == DS.Mesh{T}
 
         @test typeof(p.cache) == DS.PointCache{T}

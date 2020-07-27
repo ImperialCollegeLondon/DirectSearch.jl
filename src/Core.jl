@@ -15,7 +15,7 @@ export DSProblem, ProblemSense, SetObjective, SetInitialPoint, SetVariableRange,
                          objective::Union{Function,Nothing}=nothing,
                          initial_point::Vector{T}=zeros(T, N),
                          iteration_limit::Int=1000,
-                         sense::ProblemSense=Min)
+                         )
 
 Return a problem definition for an `N` dimensional problem.
 
@@ -35,7 +35,6 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     #Problem Definition
     objective::Function
     constraints::Constraints
-    sense::ProblemSense
     
     #TODO incumbent points should be sets not points, therefore change to vectors of points
     #and remove type unions 
@@ -65,11 +64,10 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
 
     cache::AbstractCache
 
-    num_procs::Int
-    max_simultanious_evaluations::Int
-
     #Barrier threshold
     h_max::T
+
+    config::Config
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
@@ -79,7 +77,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector{T}=zeros(T, N),
                           iteration_limit::Int=1000,
-                          sense::ProblemSense=Min
+                          kwargs...
                          ) where T
                        
         p = new()
@@ -94,15 +92,13 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
         p.function_evaluations = 0
         p.iteration_limit = iteration_limit
         p.status = Unoptimized
-        p.sense = sense
 
         
         p.meshscale = ones(p.N)
 
         p.cache = PointCache{T}()
 
-        p.num_procs = nworkers()
-        p.max_simultanious_evaluations = 1
+        p.config = Config(;kwargs...)
        
         p.x = nothing
         p.x_cost = nothing
@@ -139,13 +135,13 @@ calculation to a cluster) then setting this to a number greater than your PC's
 number of threads will result in no improvement.
 """
 function SetMaxEvals(p::DSProblem, m::Int)
-    if m > p.num_procs
-        println("$m is larger than the number of workers that Julia was started with ($(p.num_procs))")
-        println("Setting maximum number of workers to $(p.num_procs)")
+    if m > p.config.num_procs
+        println("$m is larger than the number of workers that Julia was started with ($(p.config.num_procs))")
+        println("Setting maximum number of workers to $(p.config.num_procs)")
         println("Start Julia with the option `-p N` where N is the number of additional processes")
-        p.max_simultanious_evaluations = p.num_procs
+        p.config.max_simultanious_evaluations = p.config.num_procs
     else
-        p.max_simultanious_evaluations = m
+        p.config.max_simultanious_evaluations = m
     end
 end
 
@@ -156,7 +152,7 @@ Sets the target objective function to solve. `obj` should take a vector and retu
 a single cost value.
 """
 function SetObjective(p::DSProblem, obj::Function)
-    if p.sense == Min
+    if p.config.sense == Min
         p.objective = obj
     else
         p.objective = x -> -obj(x)
@@ -385,7 +381,7 @@ end
 """
 function function_evaluation(p::DSProblem{T}, 
                              trial_points::Vector{Vector{T}})::Vector{T} where T
-    if p.max_simultanious_evaluations > 1
+    if p.config.max_simultanious_evaluations > 1
         costs = SharedArray{T,1}((length(trial_points)))
         #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)
