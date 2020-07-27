@@ -2,11 +2,8 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, ProblemSense, SetObjective, SetInitialPoint, SetVariableRange, 
+export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, 
        SetVariableRanges, Optimize!, SetIterationLimit, BumpIterationLimit, SetMaxEvals
-
-@enum ProblemSense Min Max
-@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit
 
 
 """
