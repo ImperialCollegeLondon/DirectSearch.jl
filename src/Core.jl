@@ -300,7 +300,7 @@ end
 Determine whether the set of trial points result in a dominating, improving, or unsuccesful
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
-function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
+function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::IterationOutcome where T
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
 
@@ -378,6 +378,10 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
      
     return result
 end
+
+#Wrapper for matching to empty trial point arrays
+(EvaluatePoint!(p::DSProblem{T}, trial_points::Vector)::IterationOutcome) where T = 
+    EvaluatePoint!(p, convert(Vector{Vector{T}}, trial_points))
 
 """
     function_evaluation(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Vector{T} where T
