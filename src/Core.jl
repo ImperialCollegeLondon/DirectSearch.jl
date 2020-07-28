@@ -10,7 +10,7 @@ export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetOpportunis
 	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(), 
                          search::AbstractSearch=NullSearch(),
                          objective::Union{Function,Nothing}=nothing,
-                         initial_point::Vector{T}=zeros(T, N),
+                         initial_point::Vector=zeros(T, N),
                          iteration_limit::Int=1000,
                          )
 
@@ -72,7 +72,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
                           poll::AbstractPoll=LTMADS{T}(), 
                           search::AbstractSearch=NullSearch(),
                           objective::Union{Function,Nothing}=nothing,
-                          initial_point::Vector{T}=zeros(T, N),
+                          initial_point::Vector=zeros(T, N),
                           iteration_limit::Int=1000,
                           kwargs...
                          ) where T
@@ -106,7 +106,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
             p.objective = objective
         end
 
-        p.user_initial_point = initial_point
+        p.user_initial_point = convert(Vector{T},initial_point)
 
 
         p.constraints = Constraints{T}()
@@ -258,8 +258,7 @@ those constraints.
 """
 function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 
-    EvaluateInitialPoint(p)
-    CacheOrderPush(p)
+    Setup(p)
 
     while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
         OptimizeLoop(p)
@@ -275,6 +274,10 @@ function Optimize!(p::DSProblem)
     #report_finish(p)
 end
 
+function Setup(p)
+    EvaluateInitialPoint(p)
+    CacheOrderPush(p)
+end
 
 function OptimizeLoop(p)
     result = Search(p)
