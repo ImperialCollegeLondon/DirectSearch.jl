@@ -155,5 +155,32 @@
 
         p = DSProblem(3, opportunistic=true)
         @test p.config.opportunistic == true
+
+        #Setter
+        p = DSProblem(3)
+        @test p.config.opportunistic == false
+        SetOpportunisticEvaluation(p)
+        @test p.config.opportunistic == true
+        SetOpportunisticEvaluation(p, opportunistic=true)
+        @test p.config.opportunistic == true
+        SetOpportunisticEvaluation(p, opportunistic=false)
+        @test p.config.opportunistic == false
+
+        #Efficacy
+
+        #Confirm that all points are checked and best is taken
+        p = DSProblem(3; objective=x->sum(x.^2), initial_point=[10, 10, 10])
+        DS.Setup(p)
+        SetOpportunisticEvaluation(p, opportunistic=false)
+        @test p.x == [10.0, 10.0, 10.0]
+        DS.EvaluatePoint!(p, [[9.0,9.0,9.0], [8.0,8.0,8.0], [5.0,5.0,5.0], [11.0,11.0,11.0]])
+        @test p.x == [5.0,5.0,5.0]
+
+        p = DSProblem(3; objective=x->sum(x.^2), initial_point=[10, 10, 10])
+        DS.Setup(p)
+        SetOpportunisticEvaluation(p, opportunistic=true)
+        @test p.x == [10.0, 10.0, 10.0]
+        DS.EvaluatePoint!(p, [[9.0,9.0,9.0], [8.0,8.0,8.0], [5.0,5.0,5.0], [11.0,11.0,11.0]])
+        @test p.x == [9.0,9.0,9.0]
     end
 end
