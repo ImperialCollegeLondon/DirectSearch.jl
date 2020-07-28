@@ -95,7 +95,11 @@ mutable struct Status{T}
         s.iteration = 0
         s.optimization_status = Unoptimized
 
+        runtime_total = 0.0
+        search_time_total = 0.0
+        poll_time_total = 0.0
+        blackbox_time_total = 0.0
+
         return s
     end
-
 end
