@@ -262,19 +262,7 @@ function Optimize!(p::DSProblem)
     CacheOrderPush(p)
 
     while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
-
-        result = Search(p)
-        #If search fails, run poll
-        if result == Unsuccessful
-            result = Poll(p)
-        end
-
-        result != Unsuccessful && CacheOrderPush(p)
-
-        #pass the result of search/poll to update
-        MeshUpdate!(p, result)
-
-        p.iteration += 1
+        OptimizeLoop(p)
     end
 
     if p.iteration > p.iteration_limit 
@@ -285,6 +273,22 @@ function Optimize!(p::DSProblem)
     end
 
     #report_finish(p)
+end
+
+
+function OptimizeLoop(p)
+    result = Search(p)
+    #If search fails, run poll
+    if result == Unsuccessful
+        result = Poll(p)
+    end
+
+    result != Unsuccessful && CacheOrderPush(p)
+
+    #pass the result of search/poll to update
+    MeshUpdate!(p, result)
+
+    p.iteration += 1
 end
 
 """
