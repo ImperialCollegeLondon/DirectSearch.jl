@@ -2,7 +2,7 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, 
+export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetOpportunisticEvaluation,
        SetVariableRanges, Optimize!, SetIterationLimit, BumpIterationLimit, SetMaxEvals
 
 
@@ -199,7 +199,7 @@ When using opportunistic evaluation the first allowable evaluated point with an
 improved cost is set as the new incumbent solution. If using progressive barrier
 constraints this point may be infeasible.
 """
-function SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=false)
+function SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
     p.config.opportunistic = opportunistic
 end
 
@@ -319,18 +319,25 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
         #To determine if a point is dominating or improving the combined h_max is needed
         h = GetViolationSum(p.constraints, point)
 
+        updated = false
+        
         # Conditions met for a dominant point
         if feasibility == Feasible && cost < feasible_cost
             feasible_point = point
             feasible_cost = cost
-        # Conditions met for an improving point (worse cost, but closer to being feasible) or 
-        # a dominant point (better cost and closer to feasibility)
-        # Only record if it offers an improved constraint violation 
+            updated = true
         elseif feasibility == WeakInfeasible && h < h_min
+            # Conditions met for an improving point (worse cost, but closer to being feasible) or 
+            # a dominant point (better cost and closer to feasibility)
+            # Only record if it offers an improved constraint violation 
             infeasible_point = point
             infeasible_cost = cost
             h_min = h
+            updated = true
         end
+
+        #break if using opportunistic iteration
+        updated && p.config.opportunistic && break
     end
     
     result = Unsuccessful 
