@@ -39,10 +39,16 @@ abstract type AbstractCache end
 @enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit
 
 """
-    Config()
+    Config(;sense::ProblemSense=Min,
+            opportunistic::Bool=false, 
+            kwargs...
+          )
 
 Encapsulates configuration options for the solver, generally shouldn't
 be user-edited.
+
+Generally these are set at the start (automatically or via setter functions)
+and don't change.
 """
 mutable struct Config 
     num_procs::Int 
@@ -62,4 +68,34 @@ mutable struct Config
 
         return c
     end
+end
+
+mutable struct Status{T}
+    function_evaluations::Int
+    iteration::Int
+    optimization_status::OptimizationStatus
+    
+    #= Time Running Totals =#
+    #overall solve time
+    runtime_total::T
+    #time spent in search
+    search_time_total::T
+    #time spent in poll
+    poll_time_total::T
+    #time spent in function eval
+    blackbox_time_total::T
+
+    #= Start Time =#
+    start_time::T
+
+    function Status{T}() where T
+        s = new()
+
+        s.function_evaluations = 0
+        s.iteration = 0
+        s.optimization_status = Unoptimized
+
+        return s
+    end
+
 end

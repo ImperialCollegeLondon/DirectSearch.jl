@@ -6,7 +6,7 @@
         @test p.N == N
         @test typeof(p.search) == NullSearch
         @test typeof(p.poll) == LTMADS{T}
-        @test p.status == DS.Unoptimized
+        @test p.status.optimization_status == DS.Unoptimized
         @test p.config.sense == DS.Min
         @test p.config.max_simultanious_evaluations == 1
         @test typeof(p.mesh) == DS.Mesh{T}
@@ -65,11 +65,11 @@
 
         # Iteration limits
         @test p.iteration_limit == 1000
-        @test p.iteration == 0
+        @test p.status.iteration == 0
 
         Optimize!(p)
 
-        @test p.iteration == 1000
+        @test p.status.iteration == 1000
         @test_throws ErrorException SetIterationLimit(p, 900)
         SetIterationLimit(p, 1100)
         @test p.iteration_limit == 1100

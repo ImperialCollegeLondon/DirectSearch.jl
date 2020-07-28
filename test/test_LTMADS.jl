@@ -95,7 +95,7 @@ using LinearAlgebra
         @test isdefined(LTM, :constraints)
         @test LTM.config.sense == DS.Min
         @test LTM.N == 3
-        @test LTM.status == DS.Unoptimized
+        @test LTM.status.optimization_status == DS.Unoptimized
     end
 
     @testset "MeshUpdate" begin

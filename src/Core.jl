@@ -24,46 +24,44 @@ parameterisation can be ignored.
 """
 mutable struct DSProblem{T} <: AbstractProblem{T}
 
-    #Solver Config 
+    #= Solver options =#
     mesh::AbstractMesh
     poll::AbstractPoll
     search::AbstractSearch
+    cache::AbstractCache
 
-    #Problem Definition
+    #= Problem Definition =#
     objective::Function
     constraints::Constraints
+    #Problem size
+    N::Int
+    user_initial_point::Union{Vector{T},Nothing}
+    #Barrier threshold
+    h_max::T
     
     #TODO incumbent points should be sets not points, therefore change to vectors of points
     #and remove type unions 
     
-    #Feasible Incumbent point
+    #= Working Variables =#
+    #Feasible incumbent point
     x::Union{Vector{T},Nothing}
-    #Feasible Incumbent point evaluated cost
+    #Feasible incumbent point evaluated cost
     x_cost::Union{T,Nothing}
-
-    #Infeasible Incumbent point
+    #Infeasible incumbent point
     i::Union{Vector{T},Nothing}
-    #Infeasible Incumbent point evaluated cost
+    #Infeasible incumbent point evaluated cost
     i_cost::Union{T,Nothing}
  
-    user_initial_point::Union{Vector{T},Nothing}
-
-    #Problem size
-    N::Int
-
-    function_evaluations::Int
-
-    iteration::Int
-    iteration_limit::Int
-    status::OptimizationStatus
-
     meshscale::Vector{T}
 
-    cache::AbstractCache
 
-    #Barrier threshold
-    h_max::T
+    #TODO: proper stopping conditions
+    iteration_limit::Int
 
+    #= Runtime data =#
+    status::Status
+
+    #= Solver Config =#
     config::Config
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
@@ -80,22 +78,17 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
         p = new()
         
         p.N = N 
-        p.mesh = Mesh{T}(N)
         p.poll = poll
-
         p.search = search
-    
-        p.iteration = 0
-        p.function_evaluations = 0
-        p.iteration_limit = iteration_limit
-        p.status = Unoptimized
-
-        
+        p.user_initial_point = convert(Vector{T},initial_point)
         p.meshscale = ones(p.N)
 
-        p.cache = PointCache{T}()
 
+        p.mesh = Mesh{T}(N)
         p.config = Config(;kwargs...)
+        p.status = Status{T}()
+        p.constraints = Constraints{T}()
+        p.cache = PointCache{T}()
        
         p.x = nothing
         p.x_cost = nothing
@@ -106,10 +99,9 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
             p.objective = objective
         end
 
-        p.user_initial_point = convert(Vector{T},initial_point)
+        #TODO stopping conditions
+        p.iteration_limit = iteration_limit
 
-
-        p.constraints = Constraints{T}()
         return p
     end
 end
@@ -162,7 +154,7 @@ end
 Set the maximum number of iterations to `i`.
 """
 function SetIterationLimit(p::DSProblem, i::Int)
-    if i < p.iteration
+    if i < p.status.iteration
         error("Cannot set iteration limit to lower than the number of iterations that have run")
     else
         p.iteration_limit = i
@@ -260,21 +252,22 @@ function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete 
     Setup(p)
 
-    while p.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
+    while p.status.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
         OptimizeLoop(p)
     end
 
-    if p.iteration > p.iteration_limit 
-        p.status = IterationLimit
+    if p.status.iteration > p.iteration_limit 
+        p.status.optimization_status = IterationLimit
     end
     if GetMeshSize(p) <= min_mesh_size(p)
-        p.status = PrecisionLimit
+        p.status.optimization_status = PrecisionLimit
     end
 
     #report_finish(p)
 end
 
 function Setup(p)
+    p.status.start_time = time()
     EvaluateInitialPoint(p)
     CacheOrderPush(p)
 end
@@ -291,7 +284,7 @@ function OptimizeLoop(p)
     #pass the result of search/poll to update
     MeshUpdate!(p, result)
 
-    p.iteration += 1
+    p.status.iteration += 1
 end
 
 """
@@ -431,7 +424,7 @@ function function_evaluation(p::DSProblem{T},
                              trial_point::Vector{T})::T where T
     CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
     cost = p.objective(trial_point)
-    p.function_evaluations += 1
+    p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)  
 	return cost
 end
