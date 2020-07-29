@@ -4,12 +4,12 @@
         N = 3
         p = DSProblem{T}(N)
         @test p.N == N
-        @test typeof(p.search) == NullSearch
-        @test typeof(p.poll) == LTMADS{T}
+        @test typeof(p.config.search) == NullSearch
+        @test typeof(p.config.poll) == LTMADS{T}
         @test p.status.optimization_status == DS.Unoptimized
-        @test p.config.sense == DS.Min
+        @test p.sense == DS.Min
         @test p.config.max_simultanious_evaluations == 1
-        @test typeof(p.mesh) == DS.Mesh{T}
+        @test typeof(p.config.mesh) == DS.Mesh{T}
 
         @test typeof(p.cache) == DS.PointCache{T}
         @test isempty(p.cache.costs)
@@ -22,12 +22,12 @@
         N = 3
         p = DSProblem{T}(N)
         m = DS.Mesh{T}(N)
-        @test p.mesh.G == m.G == [1 0 0; 0 1 0; 0 0 1]
-        @test p.mesh.D == m.D == [1 0 0 -1 0 0; 0 1 0 0 -1 0; 0 0 1 0 0 -1]
-        @test p.mesh.Δᵐ == m.Δᵐ == 1.0
+        @test p.config.mesh.G == m.G == [1 0 0; 0 1 0; 0 0 1]
+        @test p.config.mesh.D == m.D == [1 0 0 -1 0 0; 0 1 0 0 -1 0; 0 0 1 0 0 -1]
+        @test p.config.mesh.Δᵐ == m.Δᵐ == 1.0
         # More rigourous tests for MeshUpdate! are in test_LTMADS etc.
         DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.mesh.Δᵐ == 0.25
+        @test p.config.mesh.Δᵐ == 0.25
     end
 
     @testset "min_mesh_size" begin
@@ -80,18 +80,32 @@
 
         # Variable Ranges
         p = DSProblem{T}(3)
-        @test p.meshscale == [1.0, 1.0, 1.0]
+        @test p.config.meshscale == [1.0, 1.0, 1.0]
         @test_throws ErrorException SetVariableRange(p, 4, -5.0, 5.0)
         SetVariableRange(p, 3, -5.0, 5.0)
-        @test p.meshscale == [1.0, 1.0, 1.0]
+        @test p.config.meshscale == [1.0, 1.0, 1.0]
         SetVariableRange(p, 3, -10.0, 10.0)
-        @test p.meshscale == [1.0, 1.0, 2.0]
+        @test p.config.meshscale == [1.0, 1.0, 2.0]
 
         @test_throws ErrorException SetVariableRanges(p, [-5.0, -5.0, -5.0, -5.0], [5.0, 5.0, 5.0, 5.0])
         SetVariableRanges(p, [-5.0, -5.0, -5.0], [5.0, 5.0, 5.0])
-        @test p.meshscale == [1.0, 1.0, 1.0]
+        @test p.config.meshscale == [1.0, 1.0, 1.0]
         SetVariableRanges(p, [-10.0, -10.0, -10.0], [10.0, 10.0, 10.0])
-        @test p.meshscale == [2.0, 2.0, 2.0]
+        @test p.config.meshscale == [2.0, 2.0, 2.0]
+
+        # Sense 
+        p = DSProblem{T}(3)
+        @test p.sense == DS.Min
+        p = DSProblem{T}(3, sense=DS.Min)
+        @test p.sense == DS.Min
+        p = DSProblem{T}(3, sense=DS.Max)
+        @test p.sense == DS.Max
+
+        p = DSProblem{T}(3)
+        SetSense(p, DS.Max)
+        @test p.sense == DS.Max
+        SetSense(p, DS.Min)
+        @test p.sense == DS.Min
     end
 
     @testset "Optimize!" begin
