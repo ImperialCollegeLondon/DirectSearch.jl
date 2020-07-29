@@ -4,6 +4,88 @@
 #TODO read report file to warm-start solver
 #TODO report file can be configured with cache, inner vars, points etc.
 
+struct ReportSection
+    title::String
+    entries::Vector{Union{Pair{String,Any},Nothing}}
+end
+
+Base.println(p::DSProblem) = print(p)
+function Base.print(p::DSProblem)
+    print(report_config(p))
+    println()
+    print(report_status(p))
+    println()
+    print(report_problem(p))
+end
+
+Base.println(s::ReportSection) = print(s)
+function Base.print(s::ReportSection)
+    spacenumber = max(length.([e.first for e in s.entries if e != nothing])...) + 4
+    maxwidth = max(length.([string(e.second) for e in s.entries if e != nothing])...) + spacenumber
+
+    println(join(["=" for _ in 1:maxwidth]))
+    println(s.title)
+    println(join(["-" for _ in 1:maxwidth]))
+
+    for e in s.entries
+        if e == nothing
+            println()
+        else
+            print(e.first)
+            print(join([" " for _ in 1:spacenumber - length(e.first)]))
+            println(e.second)
+        end
+    end
+end
+
+"""
+    report_config(p::DSProblem)::ReportSection
+
+Format the contents of `p.config` to a DS.ReportSection. This information details
+the configuration options that are not directly related to the solver.
+"""
+function report_config(p::DSProblem)::ReportSection
+    entries = []
+    push!(entries, "Search" => typeof(p.config.search))
+    push!(entries, "Poll" => typeof(p.config.poll))
+    push!(entries, "Mesh" => typeof(p.config.mesh))
+    push!(entries, "Mesh Scale" => p.config.meshscale)
+    push!(entries, "Opportunistic" => p.config.opportunistic)
+    push!(entries, "Number of processes" => p.config.num_procs)
+    push!(entries, "Max simultanious evaluations" => p.config.max_simultanious_evaluations)
+    return ReportSection("Config", entries)
+end
+
+function report_status(p::DSProblem)::ReportSection
+    entries = []
+    push!(entries, "Function Evaluations" => p.status.function_evaluations)
+    push!(entries, "Iterations" => p.status.iteration)
+    push!(entries, "Optimization Status" => p.status.optimization_status)
+
+    push!(entries, nothing)
+
+    push!(entries, "Runtime" => p.status.runtime_total)
+    push!(entries, "Search Time" => p.status.search_time_total)
+    push!(entries, "Poll Time" => p.status.poll_time_total)
+    push!(entries, "Blackbox Evaluation Time" => p.status.blackbox_time_total)
+    return ReportSection("Status", entries)
+end
+
+function report_problem(p::DSProblem)::ReportSection
+    entries = []
+    push!(entries, "Variables" => p.N)
+    push!(entries, "Initial Point" => p.user_initial_point)
+    push!(entries, "Sense" => p.sense)
+
+    push!(entries, nothing)
+
+    push!(entries, "Feasible Solution" => p.x)
+    push!(entries, "Feasible Cost" => p.x_cost)
+    push!(entries, "Infeasible Solution" => p.i)
+    push!(entries, "Infeasible Cost" => p.i_cost)
+    return ReportSection("Optimization Problem", entries)
+end
+
 """
     report_finish(p::DSProblem)
 
@@ -15,7 +97,7 @@ States the duration, final point, final cost, and reason for stopping.
 A more detailed report can be shown with `report`.
 """
 function report_finish(p::DSProblem)
-
+    
 end
 
 """
