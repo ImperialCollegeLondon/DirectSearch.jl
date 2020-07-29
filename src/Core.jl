@@ -2,8 +2,9 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetOpportunisticEvaluation,
-       SetVariableRanges, Optimize!, SetIterationLimit, BumpIterationLimit, SetMaxEvals
+export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, 
+       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!, 
+       SetIterationLimit, BumpIterationLimit, SetMaxEvals
 
 
 """
@@ -23,13 +24,6 @@ Note that if working with `Float64` (normally the case) then the type
 parameterisation can be ignored.
 """
 mutable struct DSProblem{T} <: AbstractProblem{T}
-
-    #= Solver options =#
-    mesh::AbstractMesh
-    poll::AbstractPoll
-    search::AbstractSearch
-    cache::AbstractCache
-
     #= Problem Definition =#
     objective::Function
     constraints::Constraints
@@ -38,6 +32,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     user_initial_point::Union{Vector{T},Nothing}
     #Barrier threshold
     h_max::T
+    sense::ProblemSense
     
     #TODO incumbent points should be sets not points, therefore change to vectors of points
     #and remove type unions 
@@ -52,8 +47,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     #Infeasible incumbent point evaluated cost
     i_cost::Union{T,Nothing}
  
-    meshscale::Vector{T}
-
+    cache::AbstractCache
 
     #TODO: proper stopping conditions
     iteration_limit::Int
@@ -72,23 +66,21 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector=zeros(T, N),
                           iteration_limit::Int=1000,
+                          sense::ProblemSense=Min,
                           kwargs...
                          ) where T
                        
         p = new()
         
         p.N = N 
-        p.poll = poll
-        p.search = search
         p.user_initial_point = convert(Vector{T},initial_point)
-        p.meshscale = ones(p.N)
 
+        p.sense = sense
 
-        p.mesh = Mesh{T}(N)
-        p.config = Config(;kwargs...)
+        p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
         p.status = Status{T}()
+        p.cache=PointCache{T}()
         p.constraints = Constraints{T}()
-        p.cache = PointCache{T}()
        
         p.x = nothing
         p.x_cost = nothing
@@ -106,9 +98,10 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     end
 end
 
-MeshUpdate!(p::DSProblem, result::IterationOutcome) = MeshUpdate!(p.mesh, p.poll, result)
+MeshUpdate!(p::DSProblem, result::IterationOutcome) = 
+    MeshUpdate!(p.config.mesh, p.config.poll, result)
 
-(GetMeshSize(p::DSProblem{T})::T) where T = p.mesh.Δᵐ
+(GetMeshSize(p::DSProblem{T})::T) where T = p.config.mesh.Δᵐ
 
 min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
 min_mesh_size(::DSProblem{T}) where T = eps(T)/2
@@ -141,11 +134,20 @@ Sets the target objective function to solve. `obj` should take a vector and retu
 a single cost value.
 """
 function SetObjective(p::DSProblem, obj::Function)
-    if p.config.sense == Min
+    if p.sense == Min
         p.objective = obj
     else
         p.objective = x -> -obj(x)
     end
+end
+
+"""
+    SetSense(p::DSProblem, sense::ProblemSense ) 
+
+Set the problem sense. Valid values for `sense` are `DS.Min` and `DS.Max`.
+"""
+function SetSense(p::DSProblem, sense::ProblemSense) 
+    p.sense = sense
 end
 
 """
@@ -209,7 +211,6 @@ function EvaluateInitialPoint(p::DSProblem)
         p.x_cost = p.objective(p.user_initial_point)
         CachePush(p, p.x, p.x_cost)
     end
-    p.user_initial_point = nothing
 end
 
 
@@ -223,7 +224,7 @@ varies with a significantly different scale to the others.
 """
 function SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
-    p.meshscale[index] = 0.1(u-l)
+    p.config.meshscale[index] = 0.1(u-l)
 end
 
 """
@@ -236,7 +237,7 @@ scaling, then give it upper and lower bounds of `-5` and `5` respectively.
 function SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
     size(l, 1) == p.N || error("Lower bound vector dimensions don't match problem definition")
     size(u, 1) == p.N || error("Upper bound vector dimensions don't match problem definition")
-    p.meshscale = @. 0.1(u-l)
+    p.config.meshscale = @. 0.1(u-l)
 end
 
 """
@@ -256,6 +257,7 @@ function Optimize!(p::DSProblem)
         OptimizeLoop(p)
     end
 
+    #TODO these will be tidied when proper stopping conditions are implemented
     if p.status.iteration > p.iteration_limit 
         p.status.optimization_status = IterationLimit
     end
@@ -263,15 +265,17 @@ function Optimize!(p::DSProblem)
         p.status.optimization_status = PrecisionLimit
     end
 
-    #report_finish(p)
+    Finish(p)
 end
 
+#Initialise solver
 function Setup(p)
     p.status.start_time = time()
     EvaluateInitialPoint(p)
     CacheOrderPush(p)
 end
 
+#A single iteration of the search->poll->update algorithm loop
 function OptimizeLoop(p)
     result = Search(p)
     #If search fails, run poll
@@ -285,6 +289,12 @@ function OptimizeLoop(p)
     MeshUpdate!(p, result)
 
     p.status.iteration += 1
+end
+
+#Cleanup and reporting
+function Finish(p)
+    p.status.end_time = time()
+    p.status.runtime_total = p.status.end_time - p.status.start_time
 end
 
 """
@@ -314,7 +324,9 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
         feasibility == StrongInfeasible && continue
 
         #Point is feasible for relaxed constraints, so evaluate it
+        t1 = time()
         cost = function_evaluation(p, point)
+        p.status.blackbox_time_total += time() - t1
 
         #To determine if a point is dominating or improving the combined h_max is needed
         h = GetViolationSum(p.constraints, point)

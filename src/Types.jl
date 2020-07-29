@@ -50,20 +50,35 @@ be user-edited.
 Generally these are set at the start (automatically or via setter functions)
 and don't change.
 """
-mutable struct Config 
+mutable struct Config{T} 
+
+    poll::AbstractPoll
+    search::AbstractSearch
+
+    mesh::AbstractMesh
+    meshscale::Vector{T}
+
     num_procs::Int 
     max_simultanious_evaluations::Int
     opportunistic::Bool
-    sense::ProblemSense
                           
-    function Config(;sense::ProblemSense=Min,
-                     opportunistic::Bool=false, 
-                     kwargs...
-                    )
+    function Config{T}(N::Int,
+                       poll::AbstractPoll,
+                       search::AbstractSearch,
+                       mesh::AbstractMesh=Mesh{T}(N);
+                       opportunistic::Bool=false, 
+                       kwargs...
+                      ) where T
         c = new()
+
+        c.poll = poll
+        c.search = search
+
+        c.mesh = mesh
+        c.meshscale = ones(N)
+
         c.num_procs = nworkers()
         c.max_simultanious_evaluations = 1
-        c.sense=sense
         c.opportunistic = opportunistic
 
         return c
@@ -76,17 +91,14 @@ mutable struct Status{T}
     optimization_status::OptimizationStatus
     
     #= Time Running Totals =#
-    #overall solve time
     runtime_total::T
-    #time spent in search
     search_time_total::T
-    #time spent in poll
     poll_time_total::T
-    #time spent in function eval
     blackbox_time_total::T
 
-    #= Start Time =#
+    #= Start/End Time =#
     start_time::T
+    end_time::T
 
     function Status{T}() where T
         s = new()
@@ -95,11 +107,12 @@ mutable struct Status{T}
         s.iteration = 0
         s.optimization_status = Unoptimized
 
-        runtime_total = 0.0
-        search_time_total = 0.0
-        poll_time_total = 0.0
-        blackbox_time_total = 0.0
+        s.runtime_total = 0.0
+        s.search_time_total = 0.0
+        s.poll_time_total = 0.0
+        s.blackbox_time_total = 0.0
 
         return s
     end
 end
+
