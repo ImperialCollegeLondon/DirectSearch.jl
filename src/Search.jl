@@ -3,7 +3,9 @@ using LinearAlgebra: norm
 export RandomSearch, NullSearch
 
 function Search(p::DSProblem{T})::IterationOutcome  where T
-    points = GenerateSearchPoints(p, p.search)
+    t1 = time()
+    points = GenerateSearchPoints(p, p.config.search)
+    p.status.search_time_total += time() - t1
     return EvaluatePoint!(p, points)
 end
 
@@ -31,7 +33,7 @@ GenerateSearchPoints(p::DSProblem, ::NullSearch) = []
 
 Calls `GenerateSearchPoints` for the search step within `p`.
 """
-(GenerateSearchPoints(p::DSProblem{T})::Vector{Vector{T}}) where T = GenerateSearchPoints(p, p.search)
+(GenerateSearchPoints(p::DSProblem{T})::Vector{Vector{T}}) where T = GenerateSearchPoints(p, p.config.search)
 
 """
     RandomSearch(M::Int)
@@ -48,7 +50,7 @@ end
 Finds points that are Δᵐ distance from any point in the mesh in a uniformly random direction.
 """
 (GenerateSearchPoints(p::DSProblem{T}, s::RandomSearch)::Vector{Vector{T}}) where T = 
-                    RandomPointsFromCache(p.N, p.cache, p.mesh.Δᵐ, s)
+                    RandomPointsFromCache(p.N, p.cache, p.config.mesh.Δᵐ, s)
 
 function RandomPointsFromCache(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
                               )::Vector{Vector{T}} where T

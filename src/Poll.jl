@@ -4,7 +4,9 @@
 Generate points and call evaluate on them.
 """
 function Poll(p::DSProblem{T})::IterationOutcome where T
-    points = GeneratePollPoints(p, p.mesh)
+    t1 = time()
+    points = GeneratePollPoints(p, p.config.mesh)
+    p.status.poll_time_total += time() - t1
     return EvaluatePoint!(p, points)
 end
 
@@ -20,13 +22,15 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh
     dirs = GenerateDirections(p)
 
     if !isnothing(p.x)
-        append!(points, [p.x+(p.mesh.Δᵐ*p.meshscale.*d) for d in eachcol(dirs)])
+        append!(points, [p.x+(p.config.mesh.Δᵐ*p.config.meshscale.*d) for d in eachcol(dirs)])
     end
     if !isnothing(p.i)
-        append!(points, [p.i+(p.mesh.Δᵐ*p.meshscale.*d) for d in eachcol(dirs)])
+        append!(points, [p.i+(p.config.mesh.Δᵐ*p.config.meshscale.*d) for d in eachcol(dirs)])
     end
 
     return points
 end
 
-GenerateDirections(p::DSProblem) = GenerateDirections(p, p.poll)
+GenerateDirections(p::DSProblem) = GenerateDirections(p, p.config.poll)
+
+Name(::AbstractPoll) = "Unknown poll type"
