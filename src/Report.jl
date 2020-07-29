@@ -1,16 +1,19 @@
-#export report, ReportConstraints
-
+export Config, Status, Problem
 #TODO add ability to save report every X iterations
 #TODO read report file to warm-start solver
-#TODO report file can be configured with cache, inner vars, points etc.
 
 struct ReportSection
     title::String
     entries::Vector{Union{Pair{String,Any},Nothing}}
 end
 
+Config(p::DSProblem) = print(report_config(p))
+Status(p::DSProblem) = print(report_status(p))
+Problem(p::DSProblem) = print(report_problem(p))
+
 Base.println(p::DSProblem) = print(p)
-function Base.print(p::DSProblem)
+Base.print(p::DSProblem) = format_problem(p)
+function format_problem(p::DSProblem)
     print(report_config(p))
     println()
     print(report_status(p))
@@ -19,23 +22,28 @@ function Base.print(p::DSProblem)
 end
 
 Base.println(s::ReportSection) = print(s)
-function Base.print(s::ReportSection)
+Base.print(s::ReportSection) = print(format(s))
+function format(s::ReportSection)
+    str = ""
     spacenumber = max(length.([e.first for e in s.entries if e != nothing])...) + 4
     maxwidth = max(length.([string(e.second) for e in s.entries if e != nothing])...) + spacenumber
 
-    println(join(["=" for _ in 1:maxwidth]))
-    println(s.title)
-    println(join(["-" for _ in 1:maxwidth]))
+    str *= join(["=" for _ in 1:maxwidth]) * "\n"
+    str *= s.title * "\n"
+    str *= join(["-" for _ in 1:maxwidth]) * "\n"
 
     for e in s.entries
         if e == nothing
-            println()
+            str *= "\n"
         else
-            print(e.first)
-            print(join([" " for _ in 1:spacenumber - length(e.first)]))
-            println(e.second)
+            str *= e.first
+            str *= join([" " for _ in 1:spacenumber - length(e.first)])
+            str *= string(e.second)
+            str *= "\n"
         end
     end
+
+    return str
 end
 
 """
