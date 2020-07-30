@@ -1,4 +1,4 @@
-export Config, Status, Problem
+export ReportConfig, ReportStatus, ReportProblem
 #TODO add ability to save report every X iterations
 #TODO read report file to warm-start solver
 
@@ -8,28 +8,33 @@ struct ReportSection
 end
 
 """
-    Config(p::DSProblem)
+    ReportConfig(p::DSProblem)
 
 Print the configuration options currently used by `p`.
 """
-Config(p::DSProblem) = print(report_config(p))
+ReportConfig(p::DSProblem) = print(report_config(p))
 
 """
-    Status(p::DSProblem)
+    ReportStatus(p::DSProblem)
 
 Print the current non-problem-specific status information of `p`.
 """
-Status(p::DSProblem) = print(report_status(p))
+ReportStatus(p::DSProblem) = print(report_status(p))
 
 """
-    Problem(p::DSProblem)
+    ReportProblem(p::DSProblem)
 
 Print the current problem specific status information of `p`.
 """
-Problem(p::DSProblem) = print(report_problem(p))
+ReportProblem(p::DSProblem) = print(report_problem(p))
 
-Base.println(p::DSProblem) = print(p)
+"""
+    Base.print(p::DSProblem)
+
+Print the output of [`ReportConfig`](@ref), [`ReportStatus`](@ref), and [`ReportProblem`](@ref) in a list.
+"""
 Base.print(p::DSProblem) = format_problem(p)
+Base.println(p::DSProblem) = print(p)
 function format_problem(p::DSProblem)
     print(report_config(p))
     println()
