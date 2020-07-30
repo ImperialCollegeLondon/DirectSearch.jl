@@ -7,8 +7,25 @@ struct ReportSection
     entries::Vector{Union{Pair{String,Any},Nothing}}
 end
 
+"""
+    Config(p::DSProblem)
+
+Print the configuration options currently used by `p`.
+"""
 Config(p::DSProblem) = print(report_config(p))
+
+"""
+    Status(p::DSProblem)
+
+Print the current non-problem-specific status information of `p`.
+"""
 Status(p::DSProblem) = print(report_status(p))
+
+"""
+    Problem(p::DSProblem)
+
+Print the current problem specific status information of `p`.
+"""
 Problem(p::DSProblem) = print(report_problem(p))
 
 Base.println(p::DSProblem) = print(p)
@@ -50,7 +67,7 @@ end
     report_config(p::DSProblem)::ReportSection
 
 Format the contents of `p.config` to a DS.ReportSection. This information details
-the configuration options that are not directly related to the solver.
+the configuration used by `p`.
 """
 function report_config(p::DSProblem)::ReportSection
     entries = []
@@ -64,6 +81,12 @@ function report_config(p::DSProblem)::ReportSection
     return ReportSection("Config", entries)
 end
 
+"""
+    report_status(p::DSProblem)::ReportSection
+
+Format the contents of `p.status` to a DS.ReportSection. This information details
+the current state of the solver in regards to non-problem specific information.
+"""
 function report_status(p::DSProblem)::ReportSection
     entries = []
     push!(entries, "Function Evaluations" => p.status.function_evaluations)
@@ -79,6 +102,12 @@ function report_status(p::DSProblem)::ReportSection
     return ReportSection("Status", entries)
 end
 
+"""
+    report_problem(p::DSProblem)::ReportSection
+
+Format the contents of `p` to a DS.ReportSection. This information details
+the current problem-specific state of the solver.
+"""
 function report_problem(p::DSProblem)::ReportSection
     entries = []
     push!(entries, "Variables" => p.N)
@@ -92,91 +121,6 @@ function report_problem(p::DSProblem)::ReportSection
     push!(entries, "Infeasible Solution" => p.i)
     push!(entries, "Infeasible Cost" => p.i_cost)
     return ReportSection("Optimization Problem", entries)
-end
-
-"""
-    report_finish(p::DSProblem)
-
-**Not Implemented**
-
-If not silent, give a short printout of the result of the problem.
-
-States the duration, final point, final cost, and reason for stopping.
-A more detailed report can be shown with `report`.
-"""
-function report_finish(p::DSProblem)
-    
-end
-
-"""
-    report(p::DSProblem; save::Union{Bool,String}=false)
-
-Prints a summary of the problem to the console, or saves it as a text file.
-
-`save=true` saves the report in the current REPL directory, but will error 
-if the default file name `report` is taken. Otherwise give a path as an argument
-to use that name.
-
-The report contains the solver configuration, the initial and final incumbent points,
-the initial and final cost, the duration, the number of iterations, and the current
-status.
-"""
-function report(p::DSProblem; save::Union{Bool,String}=false,
-               print_problem=true, print_solver=true, print_config=true)
-    problem =
-"""
----------------------------------
-Problem Status
----------------------------------
-Incumbent Point:    $(p.x)
-Current Cost:       $(p.x_cost)
-
-Initial Point:      $(p.x_initial)
-Initial Cost:       $(p.x_initial_cost)
-
-Variables:          $(p.N)
-Variable Scaling:   $(p.meshscale)
-
-"""
-    solver =
-"""
----------------------------------
-Solver Status
----------------------------------
-Status:             $(p.status) 
-Iterations:         $(p.iteration)
-
-Duration:           To be added
-
-"""
-
-    config = 
-"""
----------------------------------
-Solver Configuration
----------------------------------
-Sense:              $(p.sense) 
-
-Mesh:               $(typeof(p.mesh))
-Search Directions:  To be added
-Poll Directions:    $(typeof(p.poll))
-
-"""
-    report_str = "Direct Search Optimisation Report\n=================================\n" 
-
-    if print_problem
-        report_str *= problem 
-    end
-    if print_solver
-        report_str *= solver
-    end
-    if print_config
-        report_str *= config
-    end
-
-    report_str *= "================================="
-
-    println(report_str)
 end
 
 """
