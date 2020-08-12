@@ -4,42 +4,43 @@ using LinearAlgebra
     @testset "Initialisation" begin
 
         #Check that constructor defaults to parametric type Float64
-        _om = OrthoMADS(3)
-        om = OrthoMADS{Float64,Int64}(3)
+        _om = OrthoMADS()
+        om = OrthoMADS{Float64,Int64}()
+
+        @test isdefined(om, :t)
+        @test isdefined(om, :tmax)
+        @test isdefined(om, :t₀)
+        @test _om.l == om.l
+        @test _om.init_run == om.init_run
         @test _om.Δᵖmin == om.Δᵖmin
-        @test _om.t₀ == om.t₀
-        @test _om.t == om.t
-        @test _om.tmax == om.tmax
-
-
-        #Check that expected values are given for n=5
+        @test om.l == 0
+        @test om.init_run == false
         @test om.Δᵖmin == 1.0
-        @test om.t == 5
-        @test om.t₀ == 5
-        @test om.tmax == 5
 
-        om = OrthoMADS{Float64,Int64}(5)
+        primes = [
+           2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 
+           67, 71, 73, 79, 83, 89, 97, 101, 103, 107, 109, 113, 127, 131, 137, 
+           139, 149, 151, 157, 163, 167, 173, 179, 181, 191, 193, 197, 199, 211, 
+           223, 227, 229
+        ]
 
-        #Check that expected values are given for n=11
-        @test om.Δᵖmin == 1.0
-        @test om.t == 11
-        @test om.t₀ == 11
-        @test om.tmax == 11
-
-        #Check that error is raised for negative and 0 valued n
-        @test_throws DomainError OrthoMADS{Float64,Int64}(0)
-        @test_throws DomainError OrthoMADS{Float64,Int64}(-1)
+        for N = 1:50
+            om = OrthoMADS{Float64,Int64}()
+            @test om.init_run == false
+            DS.init_orthomads(N, om)
+            @test om.t == om.tmax == om.t₀ == primes[N]
+            @test om.init_run == true
+        end
     end
 
     @testset "MeshUpdate" begin
-        #input(N) = (DS.Mesh(N), OrthoMADS(N))
         @testset "mesh index, l" begin
             #=
             Combining rules from progressive barrier and OrthoMADS, the index
             should decrement on a successful iteration (dominating), stay the same
             on an improving iteration, and increment on a failure.
             =#
-            p = DSProblem(4;poll=OrthoMADS(4))
+            p = DSProblem(4;poll=OrthoMADS())
             m = p.config.mesh
             o = p.config.poll
            @test m.l == 0
@@ -75,7 +76,7 @@ using LinearAlgebra
         end
 
         @testset "poll size parameter, Δᵖ" begin
-            p = DSProblem(4;poll=OrthoMADS(4))
+            p = DSProblem(4;poll=OrthoMADS())
             m = p.config.mesh
             o = p.config.poll
 
@@ -116,7 +117,7 @@ using LinearAlgebra
             @test m.Δᵖ == 0.0625
         end
         @testset "mesh size parameter, Δᵐ" begin
-            p = DSProblem(4;poll=OrthoMADS(4))
+            p = DSProblem(4;poll=OrthoMADS())
             m = p.config.mesh
             o = p.config.poll
 
@@ -153,9 +154,11 @@ using LinearAlgebra
             @test m.Δᵐ == 0.0625
         end
         @testset "Halton index, tᵐ" begin
-            p = DSProblem(4;poll=OrthoMADS(4))
+            N = 4
+            p = DSProblem(N; poll=OrthoMADS())
             m = p.config.mesh
             o = p.config.poll
+            DS.init_orthomads(N, o)
             
             #=
             If the poll size is the smallest so far then:
@@ -459,7 +462,7 @@ using LinearAlgebra
 	end
 
     @testset "GenerateDirections" begin
-        p = DSProblem(4; poll=OrthoMADS(4))
+        p = DSProblem(4; poll=OrthoMADS())
         #Initially t=7, l=0
         D = [1 0 0 0 -1 0 0 0; 0 1 0 0 0 -1 0 0; 0 0 1 0 0 0 -1 0; 0 0 0 -1 0 0 0 1]
         @test DS.GenerateDirections(p) == D

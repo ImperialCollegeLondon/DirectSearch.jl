@@ -4,13 +4,12 @@ using LinearAlgebra
 export OrthoMADS
 
 """
-    OrthoMADS(N::Int)
+    OrthoMADS()
 
-Return an empty OrthoMADS object. `N` must match the dimension of the
-problem that this stage is being given to.
+Return an empty OrthoMADS object. 
 
 OrthoMADS uses Halton sequences to generate an orthogonal basis of
-directiosn for the poll step. This is a deterministic process, unlike
+directios for the poll step. This is a deterministic process, unlike
 (`LTMADS`)[@ref].
 """
 mutable struct OrthoMADS{T,F} <: AbstractPoll
@@ -19,11 +18,12 @@ mutable struct OrthoMADS{T,F} <: AbstractPoll
     t₀::F
     t::F
     tmax::F
-    OrthoMADS(N::Int) = OrthoMADS{Float64,Int64}(N)
-    function OrthoMADS{T,F}(N::F) where {T,F}
+    init_run::Bool
+    OrthoMADS() = OrthoMADS{Float64,Int64}()
+    function OrthoMADS{T,F}() where {T,F}
         M = new()
         #Initialise as the Nth prime
-        M.tmax = M.t = M.t₀ = prime(N)
+        M.init_run = false
         M.l = 0
         M.Δᵖmin = 1.0
         return M
@@ -70,8 +70,14 @@ Generates columns and forms a basis matrix for direction generation.
 (GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T}) where T = 
     GenerateDirections(p.N, DG)
 
-function GenerateDirections(N::Int64, DG::OrthoMADS{T})::Matrix{T} where T
-    H = GenerateOMBasis(N, DG.t, DG.l)
+function init_orthomads(N::Int64, o::OrthoMADS)
+    o.tmax = o.t = o.t₀ = prime(N)
+    o.init_run = true
+end
+
+function GenerateDirections(N::Int64, o::OrthoMADS{T})::Matrix{T} where T
+    o.init_run || init_orthomads(N, o)
+    H = GenerateOMBasis(N, o.t, o.l)
 	return hcat(H, -H)
 end
 

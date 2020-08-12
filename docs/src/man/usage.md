@@ -136,7 +136,7 @@ Poll steps return a set of directions that are then evaluated with a preset dist
 As with the search step, it is set in `DSProblem`:
 ```julia
 p = DSProblem(3; poll=LTMADS())
-p = DSProblem(3; poll=OrthoMADS(3))
+p = DSProblem(3; poll=OrthoMADS())
 ```
 Two poll steps are included. The first is LTMADS, which generates a set of directions from a basis generated from a semi-random lower triangular matrix. The other is OrthoMADS, a later algorithm that generates an orthogonal set of directions. OrthoMADS needs the dimension of the problem to be provided. By default, LTMADS is used.
 
