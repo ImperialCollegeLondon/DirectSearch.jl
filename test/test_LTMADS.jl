@@ -90,31 +90,31 @@ using LinearAlgebra
     end
 
     @testset "LTMADS" begin
-        LTM = DS.DSProblem{T}(3, poll=LTMADS{T}())
-        @test !isdefined(LTM, :objective)
-        @test isdefined(LTM, :constraints)
-        @test LTM.config.sense == DS.Min
-        @test LTM.N == 3
-        @test LTM.status == DS.Unoptimized
+        p = DS.DSProblem{T}(3, poll=LTMADS{T}())
+        @test !isdefined(p, :objective)
+        @test isdefined(p, :constraints)
+        @test p.sense == DS.Min
+        @test p.N == 3
+        @test p.status.optimization_status == DS.Unoptimized
     end
 
     @testset "MeshUpdate" begin
         p = DS.DSProblem{T}(3, poll=LTMADS{T}())
-        @test p.mesh.Δᵐ == 1
+        @test p.config.mesh.Δᵐ == 1
         DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.mesh.Δᵐ == 1/4
+        @test p.config.mesh.Δᵐ == 1/4
         DS.MeshUpdate!(p, DS.Dominating)
-        @test p.mesh.Δᵐ == 1
+        @test p.config.mesh.Δᵐ == 1
         DS.MeshUpdate!(p, DS.Improving)
-        @test p.mesh.Δᵐ == 1
+        @test p.config.mesh.Δᵐ == 1
         DS.MeshUpdate!(p, DS.Dominating)
-        @test p.mesh.Δᵐ == 1
+        @test p.config.mesh.Δᵐ == 1
         DS.MeshUpdate!(p, DS.Unsuccessful)
         DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.mesh.Δᵐ == 1/16
+        @test p.config.mesh.Δᵐ == 1/16
         DS.MeshUpdate!(p, DS.Improving)
-        @test p.mesh.Δᵐ == 1/16
+        @test p.config.mesh.Δᵐ == 1/16
         DS.MeshUpdate!(p, DS.Dominating)
-        @test p.mesh.Δᵐ == 1/4
+        @test p.config.mesh.Δᵐ == 1/4
     end
 end

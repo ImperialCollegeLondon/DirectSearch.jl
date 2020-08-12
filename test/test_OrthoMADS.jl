@@ -40,8 +40,8 @@ using LinearAlgebra
             on an improving iteration, and increment on a failure.
             =#
             p = DSProblem(4;poll=OrthoMADS(4))
-            m = p.mesh
-            o = p.poll
+            m = p.config.mesh
+            o = p.config.poll
            @test m.l == 0
             DS.MeshUpdate!(p, DS.Dominating)
             @test m.l == -1
@@ -76,8 +76,8 @@ using LinearAlgebra
 
         @testset "poll size parameter, Δᵖ" begin
             p = DSProblem(4;poll=OrthoMADS(4))
-            m = p.mesh
-            o = p.poll
+            m = p.config.mesh
+            o = p.config.poll
 
             #= Should evaluate to 2^-l =#
             @test m.Δᵖ == 1.0
@@ -117,8 +117,8 @@ using LinearAlgebra
         end
         @testset "mesh size parameter, Δᵐ" begin
             p = DSProblem(4;poll=OrthoMADS(4))
-            m = p.mesh
-            o = p.poll
+            m = p.config.mesh
+            o = p.config.poll
 
             #= Should evaluate to min(1, 4^(-l)) =#
             @test m.Δᵐ == 1.0
@@ -154,8 +154,8 @@ using LinearAlgebra
         end
         @testset "Halton index, tᵐ" begin
             p = DSProblem(4;poll=OrthoMADS(4))
-            m = p.mesh
-            o = p.poll
+            m = p.config.mesh
+            o = p.config.poll
             
             #=
             If the poll size is the smallest so far then:
@@ -463,8 +463,8 @@ using LinearAlgebra
         #Initially t=7, l=0
         D = [1 0 0 0 -1 0 0 0; 0 1 0 0 0 -1 0 0; 0 0 1 0 0 0 -1 0; 0 0 0 -1 0 0 0 1]
         @test DS.GenerateDirections(p) == D
-        @test DS.GenerateDirections(p, p.poll) == D
-        @test DS.GenerateDirections(4, p.poll) == D
+        @test DS.GenerateDirections(p, p.config.poll) == D
+        @test DS.GenerateDirections(4, p.config.poll) == D
     end
 end
 

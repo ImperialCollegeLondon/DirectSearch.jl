@@ -40,11 +40,9 @@ DefaultProgressiveRef
 ```
 
 ## Reporting
-**Many functions in this section are out of date, do not rely on them to give accurate information**
 ```@docs
-DirectSearch.report_finish
-DirectSearch.report
-DirectSearch.export_points
-DirectSearch.ReportConstraints(::DSProblem)
-DirectSearch.ReportConstraintCollection
+ReportConfig
+ReportStatus
+ReportProblem
+Base.print
 ```
