@@ -39,7 +39,7 @@ using LinearAlgebra
         L = DS.L_generation(N, l)
         b, I = DS.b_l_generation(Dict{T,Vector{T}}(), Dict{T,Int64}(), l, N)
         p = shuffle!(setdiff(1:N, I))
-        
+
         B = DS.B_generation(N, I, b, L, perm=p)
         @test all([B[p[i],1:N-1] == L[i,:] for i=1:N-1])
         @test all(B[I, 1:N-1] .== 0 )
@@ -57,7 +57,7 @@ using LinearAlgebra
         p = [4,1,2,5]
         q = [5,1,3,2,4]
         N = 5
-        
+
         B = [ 3.0  4.0  0.0 0.0 -3.0;
              -1.0  2.0 -4.0 0.0  2.0;
               0.0  0.0  0.0 0.0  4.0;
@@ -73,7 +73,7 @@ using LinearAlgebra
              -2.0 4.0  0.0  0.0  1.0]
         _B′ = DS.B′_generation(B, N, perm=q)
         @test _B′ == B′
-        
+
         Dₖmin = [ 4.0 0.0  0.0 -3.0  3.0 -4.0;
                   2.0 0.0 -4.0  2.0 -1.0  1.0;
                   0.0 0.0  0.0  4.0  0.0 -4.0;

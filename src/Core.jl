@@ -2,13 +2,13 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, 
-       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!, 
+export DSProblem, SetObjective, SetInitialPoint, SetVariableRange,
+       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!,
        SetIterationLimit, BumpIterationLimit, SetMaxEvals
 
 
 """
-	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(), 
+	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(),
                          search::AbstractSearch=NullSearch(),
                          objective::Union{Function,Nothing}=nothing,
                          initial_point::Vector=zeros(T, N),
@@ -33,10 +33,10 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     #Barrier threshold
     h_max::T
     sense::ProblemSense
-    
+
     #TODO incumbent points should be sets not points, therefore change to vectors of points
-    #and remove type unions 
-    
+    #and remove type unions
+
     #= Working Variables =#
     #Feasible incumbent point
     x::Union{Vector{T},Nothing}
@@ -46,7 +46,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     i::Union{Vector{T},Nothing}
     #Infeasible incumbent point evaluated cost
     i_cost::Union{T,Nothing}
- 
+
     cache::AbstractCache
 
     #TODO: proper stopping conditions
@@ -60,8 +60,8 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
-    function DSProblem{T}(N::Int; 
-                          poll::AbstractPoll=LTMADS{T}(), 
+    function DSProblem{T}(N::Int;
+                          poll::AbstractPoll=LTMADS{T}(),
                           search::AbstractSearch=NullSearch(),
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector=zeros(T, N),
@@ -69,24 +69,24 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
                           sense::ProblemSense=Min,
                           kwargs...
                          ) where T
-                       
+
         p = new()
-        
-        p.N = N 
+
+        p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
 
         p.sense = sense
 
         p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
-        p.status = Status{T}()
+        p.status = Status()
         p.cache=PointCache{T}()
         p.constraints = Constraints{T}()
-       
+
         p.x = nothing
         p.x_cost = nothing
         p.i = nothing
         p.i_cost = nothing
-        
+
         if objective != nothing
             p.objective = objective
         end
@@ -98,7 +98,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     end
 end
 
-MeshUpdate!(p::DSProblem, result::IterationOutcome) = 
+MeshUpdate!(p::DSProblem, result::IterationOutcome) =
     MeshUpdate!(p.config.mesh, p.config.poll, result)
 
 (GetMeshSize(p::DSProblem{T})::T) where T = p.config.mesh.Δᵐ
@@ -112,8 +112,8 @@ min_mesh_size(::DSProblem{T}) where T = eps(T)/2
 Set the maximum number of simultaneous function evaluations that can be run.
 By default this will be set 1.
 
-If (DirectSearch.function_evaluation)[@ref] is not overriden (e.g. for sending 
-calculation to a cluster) then setting this to a number greater than your PC's 
+If (DirectSearch.function_evaluation)[@ref] is not overriden (e.g. for sending
+calculation to a cluster) then setting this to a number greater than your PC's
 number of threads will result in no improvement.
 """
 function SetMaxEvals(p::DSProblem, m::Int)
@@ -142,11 +142,11 @@ function SetObjective(p::DSProblem, obj::Function)
 end
 
 """
-    SetSense(p::DSProblem, sense::ProblemSense ) 
+    SetSense(p::DSProblem, sense::ProblemSense )
 
 Set the problem sense. Valid values for `sense` are `DS.Min` and `DS.Max`.
 """
-function SetSense(p::DSProblem, sense::ProblemSense) 
+function SetSense(p::DSProblem, sense::ProblemSense)
     p.sense = sense
 end
 
@@ -175,12 +175,12 @@ end
 """
     SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
 
-Set the initial incumbent point to `x`. This must be of the correct dimension. If using 
+Set the initial incumbent point to `x`. This must be of the correct dimension. If using
 any extreme barrier constraints then it must also satisfy these constraints.
 """
 function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
     size(x, 1) == p.N || error("Point dimensions don't match problem definition")
-    #TODO Check against constraints 
+    #TODO Check against constraints
     p.user_initial_point = x
 end
 
@@ -189,7 +189,7 @@ end
 
 Set/unset opportunistic evaluation (enables by default).
 
-When using opportunistic evaluation the first allowable evaluated point with an 
+When using opportunistic evaluation the first allowable evaluated point with an
 improved cost is set as the new incumbent solution. If using progressive barrier
 constraints this point may be infeasible.
 """
@@ -245,12 +245,12 @@ end
 
 Run the direct search algorithm on problem `p`.
 
-`p` must have had its initial point and objective function set. If extreme 
-barrier constraints have been set then the initial point must be value for 
+`p` must have had its initial point and objective function set. If extreme
+barrier constraints have been set then the initial point must be value for
 those constraints.
 """
 function Optimize!(p::DSProblem)
-    #TODO check that problem definition is complete 
+    #TODO check that problem definition is complete
     Setup(p)
 
     while p.status.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
@@ -258,7 +258,7 @@ function Optimize!(p::DSProblem)
     end
 
     #TODO these will be tidied when proper stopping conditions are implemented
-    if p.status.iteration > p.iteration_limit 
+    if p.status.iteration > p.iteration_limit
         p.status.optimization_status = IterationLimit
     end
     if GetMeshSize(p) <= min_mesh_size(p)
@@ -303,7 +303,7 @@ end
 Determine whether the set of trial points result in a dominating, improving, or unsuccesful
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
-function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::IterationOutcome where T
+function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::IterationOutcome where {T<:AbstractFloat}
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
 
@@ -332,16 +332,16 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
         h = GetViolationSum(p.constraints, point)
 
         updated = false
-        
+
         # Conditions met for a dominant point
         if feasibility == Feasible && cost < feasible_cost
             feasible_point = point
             feasible_cost = cost
             updated = true
         elseif feasibility == WeakInfeasible && h < h_min
-            # Conditions met for an improving point (worse cost, but closer to being feasible) or 
+            # Conditions met for an improving point (worse cost, but closer to being feasible) or
             # a dominant point (better cost and closer to feasibility)
-            # Only record if it offers an improved constraint violation 
+            # Only record if it offers an improved constraint violation
             infeasible_point = point
             infeasible_cost = cost
             h_min = h
@@ -351,8 +351,8 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
         #break if using opportunistic iteration
         updated && p.config.opportunistic && break
     end
-    
-    result = Unsuccessful 
+
+    result = Unsuccessful
 
     incum_i_cost = isnothing(p.i_cost) ? Inf : p.i_cost
     incum_x_cost = isnothing(p.x_cost) ? Inf : p.x_cost
@@ -361,7 +361,7 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
     # Dominates if there is a feasible improvement, or an infeasible point with
     # reduced violation (determined previously) as well as a cost lower than any
     # yet tested (feasible and infeasible)
-    if feasible_cost < incum_x_cost 
+    if feasible_cost < incum_x_cost
         result = Dominating
     elseif infeasible_cost < incum_i_cost && h_min < GetOldHmaxSum(p.constraints)
         result = Dominating
@@ -380,37 +380,37 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
     end
 
     UpdateConstraints(p.constraints, h_min, result, p.x, p.i)
-     
+
     return result
 end
 
 #Wrapper for matching to empty trial point arrays
-(EvaluatePoint!(p::DSProblem{T}, trial_points::Vector)::IterationOutcome) where T = 
+(EvaluatePoint!(p::DSProblem{T}, trial_points::Vector)::IterationOutcome) where T =
     EvaluatePoint!(p, convert(Vector{Vector{T}}, trial_points))
 
 """
     function_evaluation(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Vector{T} where T
 
-Calculate the cost of the points in `trial_points` and return as a vector. 
+Calculate the cost of the points in `trial_points` and return as a vector.
 
 If the number of available workers is greater than one, and the max_simultanious_evaluations
-value of `p` is greater than one then the calculation is distributed across 
-several cores. 
+value of `p` is greater than one then the calculation is distributed across
+several cores.
 
 Currently, this has significant overheads and is much slower than evaluating in a single threaded
 manner on all testcases. This may give performance benefits when `f` is a heavy, single threaded
 operation.
 
-If a specialised way  of calling the function is needed then this function should be overriden, e.g.: 
+If a specialised way  of calling the function is needed then this function should be overriden, e.g.:
 
 ```
 function DS.function_evaluation(p::DS.DSProblem{T}, trial_points::Vector{Vector{T}}) where T
-	println("I am overriden")	
+	println("I am overriden")
 	return map(p.objective, trial_points)
 end
 ```
 """
-function function_evaluation(p::DSProblem{T}, 
+function function_evaluation(p::DSProblem{T},
                              trial_points::Vector{Vector{T}})::Vector{T} where T
     if p.config.max_simultanious_evaluations > 1
         costs = SharedArray{T,1}((length(trial_points)))
@@ -427,16 +427,16 @@ end
 """
 	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::T where T
 
-Evaluate a single trial point with the objective function of `p`. 
+Evaluate a single trial point with the objective function of `p`.
 
-By default calls the function with the trial point and returns the result. Override to 
+By default calls the function with the trial point and returns the result. Override to
 provide custom evaluation behaviour.
 """
-function function_evaluation(p::DSProblem{T}, 
+function function_evaluation(p::DSProblem{T},
                              trial_point::Vector{T})::T where T
     CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
     cost = p.objective(trial_point)
     p.status.function_evaluations += 1
-    CachePush(p, trial_point, cost)  
+    CachePush(p, trial_point, cost)
 	return cost
 end

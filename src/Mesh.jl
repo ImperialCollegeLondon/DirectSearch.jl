@@ -7,14 +7,14 @@ Contains functions/type prototypes for the mesh.
 #Should make an effort to follow the naming conventions established
 #in existing methods in order to give compatibility between methods
 abstract type AbstractMesh end
-mutable struct Mesh{T} <: AbstractMesh 
+mutable struct Mesh{T} <: AbstractMesh
     G::Matrix{T}
     D::Matrix{T}
     l::Int
     Δᵐ::T
     Δᵖ::T
 
-    # Override constructor for different default meshes for 
+    # Override constructor for different default meshes for
     # different poll techniques.
     Mesh(N::Int64) = Mesh{Float64}(N)
     function Mesh{T}(N::Int64) where T
@@ -25,13 +25,13 @@ mutable struct Mesh{T} <: AbstractMesh
         mesh.G = Matrix(I,N,N)
         mesh.D = hcat(Matrix(I,N,N),-Matrix(I,N,N))
         return mesh
-    end 
+    end
 end
 
 """
     MeshUpdate!(mesh::Mesh, improvement_found::Bool)
 
-Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive 
+Implements LTMADS update rule from Audet & Dennis 2006 pg. 203 adapted for progressive
 barrier constraints with Audet & Dennis 2009 expression 2.4.
 """
 function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
@@ -42,7 +42,7 @@ function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
     elseif result == Improving
         m.l == m.l
     end
-    
+
     m.Δᵐ = min(1, 4.0^(-m.l))
     m.Δᵖ = 2.0^(-m.l)
 end

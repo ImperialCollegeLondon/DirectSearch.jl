@@ -13,7 +13,7 @@
     p3(x) = x[2] > 0 ? 0 : -x[2]
 
     C = DS.Constraints{T}()
-    @testset "Constraints" begin    
+    @testset "Constraints" begin
         @test C.count == length(C.collections) == 2
         @test typeof(C.collections[1]) == DS.ConstraintCollection{T, DS.ExtremeConstraint}
         @test typeof(C.collections[2]) == DS.ConstraintCollection{T, DS.ProgressiveConstraint}
@@ -38,30 +38,30 @@
 
     C = DS.Constraints{T}()
     @testset "AddExtremeConstraint" begin
-        c1_ref = DS.AddExtremeConstraint(C, c1) 
+        c1_ref = DS.AddExtremeConstraint(C, c1)
         @test c1_ref.value == 1
         @test typeof(c1_ref) == DS.ConstraintIndex
-        
-        # Can't push an extreme constraint to a progressive collection
-        @test_throws MethodError DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(2)) 
-        @test_throws ErrorException DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(3)) 
 
-        vec_ref = DS.AddExtremeConstraint(C, [c2, c3])     
+        # Can't push an extreme constraint to a progressive collection
+        @test_throws MethodError DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(2))
+        @test_throws ErrorException DS.AddExtremeConstraint(C, c1, index=DS.CollectionIndex(3))
+
+        vec_ref = DS.AddExtremeConstraint(C, [c2, c3])
         @test length(vec_ref) == 2
         @test vec_ref[1].value == 2
         @test vec_ref[2].value == 3
     end
 
     @testset "AddProgressiveConstraint" begin
-        p1_ref = DS.AddProgressiveConstraint(C, p1) 
+        p1_ref = DS.AddProgressiveConstraint(C, p1)
         @test p1_ref.value == 1
         @test typeof(p1_ref) == DS.ConstraintIndex
-        
-        # Can't push an extreme constraint to a progressive collection
-        @test_throws MethodError DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(1)) 
-        @test_throws ErrorException DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(3)) 
 
-        vec_ref = DS.AddProgressiveConstraint(C, [c2, c3])     
+        # Can't push an extreme constraint to a progressive collection
+        @test_throws MethodError DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(1))
+        @test_throws ErrorException DS.AddProgressiveConstraint(C, p1, index=DS.CollectionIndex(3))
+
+        vec_ref = DS.AddProgressiveConstraint(C, [c2, c3])
         @test length(vec_ref) == 2
         @test vec_ref[1].value == 2
         @test vec_ref[2].value == 3
@@ -75,7 +75,7 @@
 
         @test typeof(C.collections[3]) == DS.ConstraintCollection{T, DS.ProgressiveConstraint}
         @test length(C.collections[3].constraints) == C.collections[3].count == 0
-        
+
         p_ref = DS.AddProgressiveConstraint(C, p2, index=c_ref)
         @test length(C.collections[3].constraints) == C.collections[3].count == 1
     end

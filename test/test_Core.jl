@@ -39,13 +39,13 @@
     @testset "max_evals" begin
         #This will likely be changing, so don't bother test yet
     end
-    
+
     @testset "Setters" begin
         test_point = [1, 0.3]
         test_out = 49
         p = DSProblem{T}(2)
         f = DS.rosenbrock
-        
+
         # SetObjective
         @test !isdefined(p, :objective)
         SetObjective(p, f)
@@ -73,9 +73,9 @@
         @test_throws ErrorException SetIterationLimit(p, 900)
         SetIterationLimit(p, 1100)
         @test p.iteration_limit == 1100
-        BumpIterationLimit(p) 
+        BumpIterationLimit(p)
         @test p.iteration_limit == 1200
-        BumpIterationLimit(p; i=200) 
+        BumpIterationLimit(p; i=200)
         @test p.iteration_limit == 1400
 
         # Variable Ranges
@@ -93,7 +93,7 @@
         SetVariableRanges(p, [-10.0, -10.0, -10.0], [10.0, 10.0, 10.0])
         @test p.config.meshscale == [2.0, 2.0, 2.0]
 
-        # Sense 
+        # Sense
         p = DSProblem{T}(3)
         @test p.sense == DS.Min
         p = DSProblem{T}(3, sense=DS.Min)
@@ -136,7 +136,7 @@
         @test DS.EvaluatePoint!(p, [[3.0, 3.0, 3.0],[-1.0, 3.0, 3.0]]) == DS.Dominating
 
         # Progressive Constraints
-        
+
         #Feasible point with cost reduction is dominating
         p = setup(p->AddProgressiveConstraint(p, x->x[1] > 0 ? 0 : -x[1]))
         @test DS.EvaluatePoint!(p, [[3.0, 3.0, 3.0]]) == DS.Dominating
@@ -149,7 +149,7 @@
         p = setup(p->AddProgressiveConstraint(p, x->-x[1]), initial=[-6.0, 4.0, 4.0])
         @test DS.EvaluatePoint!(p, [[-5.0, 11.0, 4.0]]) == DS.Improving
 
-        #Infeasible point with improving cost and less violation is dominating 
+        #Infeasible point with improving cost and less violation is dominating
         p = setup(p->AddProgressiveConstraint(p, x->x[1] > 0 ? 0 : -x[1]))
         @test DS.EvaluatePoint!(p, [[-1.0, 4.0, 4.0]]) == DS.Dominating
 

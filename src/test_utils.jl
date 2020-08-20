@@ -27,7 +27,7 @@ function run_lt_test(;f=camel6,n=2,
                      constraints::Vector=[],
                      initial=zeros(Float64,n),
                      lim=1000,
-                     lb=-5*ones(Float64,n), 
+                     lb=-5*ones(Float64,n),
                      ub=5*ones(Float64,n),
                      run=true)
     p = DSProblem(n)

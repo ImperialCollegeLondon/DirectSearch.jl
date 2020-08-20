@@ -23,9 +23,9 @@ abstract type AbstractSearch end
 """
     abstract type AbstractMesh end
 
-Parent type of any struct implementing the construction of a mesh. To maintain 
-compatibility with other aspects of the package, the naming convention for 
-variables within structs must be followed. These respect the notation used 
+Parent type of any struct implementing the construction of a mesh. To maintain
+compatibility with other aspects of the package, the naming convention for
+variables within structs must be followed. These respect the notation used
 within Audet & Dennis 2006.
 """
 abstract type AbstractMesh end
@@ -40,7 +40,7 @@ abstract type AbstractCache end
 
 """
     Config(;sense::ProblemSense=Min,
-            opportunistic::Bool=false, 
+            opportunistic::Bool=false,
             kwargs...
           )
 
@@ -50,7 +50,7 @@ be user-edited.
 Generally these are set at the start (automatically or via setter functions)
 and don't change.
 """
-mutable struct Config{T} 
+mutable struct Config{T}
 
     poll::AbstractPoll
     search::AbstractSearch
@@ -58,15 +58,15 @@ mutable struct Config{T}
     mesh::AbstractMesh
     meshscale::Vector{T}
 
-    num_procs::Int 
+    num_procs::Int
     max_simultanious_evaluations::Int
     opportunistic::Bool
-                          
+
     function Config{T}(N::Int,
                        poll::AbstractPoll,
                        search::AbstractSearch,
                        mesh::AbstractMesh=Mesh{T}(N);
-                       opportunistic::Bool=false, 
+                       opportunistic::Bool=false,
                        kwargs...
                       ) where T
         c = new()
@@ -89,7 +89,7 @@ mutable struct Status{T}
     function_evaluations::Int
     iteration::Int
     optimization_status::OptimizationStatus
-    
+
     #= Time Running Totals =#
     runtime_total::T
     search_time_total::T

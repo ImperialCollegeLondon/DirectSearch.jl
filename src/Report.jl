@@ -132,7 +132,7 @@ end
     export_points(p::DSProblem)
 
 Gives the trace of considered points during optimisation. Note that this is unavailable
-if tracking of points has been disabled 
+if tracking of points has been disabled
 """
 function export_points(p::DSProblem)
     for x in p.cache.order
@@ -160,14 +160,14 @@ end
 
 
 function ReportConstraintCollection(c::ConstraintCollection{T, C}) where {T,C}
-    collection_report = 
+    collection_report =
 """
 Constraints:       $(c.count)
 Ignored:           $(c.ignore)
 h_max:             $(c.h_max)
-h_max update 
+h_max update
 function handle:   $(c.h_max_update)
-result aggregate 
+result aggregate
 function handle:   $(c.result_aggregate)
 """
     print(collection_report)

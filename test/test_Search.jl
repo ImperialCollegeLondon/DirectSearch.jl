@@ -11,7 +11,7 @@
         c = generate_rand_cache(N, 10)
         d = 1.0
         s = DS.RandomSearch(10)
-        
+
         points = DS.RandomPointsFromCache(N, c, d, s)
 
         for point in points

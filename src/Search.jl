@@ -1,4 +1,4 @@
-using LinearAlgebra: norm 
+using LinearAlgebra: norm
 
 export RandomSearch, NullSearch
 
@@ -49,12 +49,12 @@ end
 
 Finds points that are Δᵐ distance from any point in the mesh in a uniformly random direction.
 """
-(GenerateSearchPoints(p::DSProblem{T}, s::RandomSearch)::Vector{Vector{T}}) where T = 
+(GenerateSearchPoints(p::DSProblem{T}, s::RandomSearch)::Vector{Vector{T}}) where T =
                     RandomPointsFromCache(p.N, p.cache, p.config.mesh.Δᵐ, s)
 
 function RandomPointsFromCache(N::Int, c::PointCache{T}, dist::T, s::RandomSearch
                               )::Vector{Vector{T}} where T
-    mesh_points = CacheRandomSample(c, s.M)     
+    mesh_points = CacheRandomSample(c, s.M)
 
     if length(mesh_points) == s.M
         for i in 1:s.M

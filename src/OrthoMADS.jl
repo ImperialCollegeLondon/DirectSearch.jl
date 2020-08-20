@@ -6,7 +6,7 @@ export OrthoMADS
 """
     OrthoMADS()
 
-Return an empty OrthoMADS object. 
+Return an empty OrthoMADS object.
 
 OrthoMADS uses Halton sequences to generate an orthogonal basis of
 directios for the poll step. This is a deterministic process, unlike
@@ -65,9 +65,9 @@ end
 """
     GenerateDirections(p::DSProblem{T}, DG::LTMADS{T})::Vector{Vector{T}}
 
-Generates columns and forms a basis matrix for direction generation. 
+Generates columns and forms a basis matrix for direction generation.
 """
-(GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T}) where T = 
+(GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T}) where T =
     GenerateDirections(p.N, DG)
 
 function init_orthomads(N::Int64, o::OrthoMADS)
@@ -82,7 +82,7 @@ function GenerateDirections(N::Int64, o::OrthoMADS{T})::Matrix{T} where T
 end
 
 function GenerateOMBasis(N::Int64, t::Int64, l::Int64)
-	h = Halton(N, t)    
+	h = Halton(N, t)
 	q = AdjustedHalton(h, N, l)
 	return HouseholderTransform(q)
 end
@@ -113,16 +113,16 @@ function HaltonCoefficient(p,t)
         a[r+1] = floor(t_local/p^r)
         t_local -= p^r * a[r+1]
     end
-    return a   
+    return a
 end
 
 
 function AdjustedHalton(halt, n, l)
     q = AdjustedHaltonFamily(halt)
     α = (2^(abs(l)/2)/sqrt(n)) - 0.5
-    
+
     α = argmax(α, x -> norm(q(x)), 2^(abs(l)/2))
-    
+
     return q(α)
 end
 
@@ -137,7 +137,7 @@ end
 function argmax(x, f, lim; iter_lim = 15)
     bump = 1
     iter = 1
-    
+
     while iter < iter_lim
         t = x + bump
         if lim >= f(t)

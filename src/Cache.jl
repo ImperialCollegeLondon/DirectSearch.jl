@@ -7,15 +7,15 @@ that stores the order of incumbent points.
 mutable struct PointCache{T} <: AbstractCache
     #TODO: Record the type of point: incumbent, violates unrelaxable constraints,
     #violates relaxable constraints for iteration i, etc.
-    
+
     #TODO: Set maximum cache size
 
     #TODO: An alternative data structure would be much faster
-    
+
     #Map a point to a cost value
-    costs::Dict{Vector{T},T} 
+    costs::Dict{Vector{T},T}
     #List the incumbent points in the order they are considered
-    order::Vector{Vector{T}} 
+    order::Vector{Vector{T}}
 
     function PointCache{T}() where T
         c = new()
@@ -28,7 +28,7 @@ end
 """
     CachePush(p::AbstractProblem, x::Vector, cost)
 
-Add point `x` and its cost `cost` to the cache of `p`. 
+Add point `x` and its cost `cost` to the cache of `p`.
 """
 CachePush(p::AbstractProblem{T}, x::Vector{T}, cost::T) where T = CachePush(p.cache, x, cost)
 
@@ -53,21 +53,21 @@ end
 
 Add the feasible incumbent point to the order vector.
 """
-CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x) 
-function CacheOrderPush(c::PointCache{T}, 
-                        x::Union{Vector{T},Nothing}, 
+CacheOrderPush(p::AbstractProblem{T}) where T = CacheOrderPush(p.cache, p.x)
+function CacheOrderPush(c::PointCache{T},
+                        x::Union{Vector{T},Nothing},
                        ) where T
-    x === nothing && return 
+    x === nothing && return
 
     if length(c.order) == 0 || x != c.order[end]
-        push!(c.order, x) 
+        push!(c.order, x)
     end
 end
 
 """
     CacheQuery(p::AbstractProblem, x::Vector)
 
-Query the cache of `p` to find if it has a cost value for point `x`. Alias 
+Query the cache of `p` to find if it has a cost value for point `x`. Alias
 to `haskey`.
 """
 CacheQuery(p::AbstractProblem, x::Vector) = CacheQuery(p.cache, x)
@@ -76,7 +76,7 @@ CacheQuery(c::PointCache{T}, x::Vector{T}) where T = haskey(c.costs, x)
 """
     CacheGet(p::AbstractProblem, x::Vector)
 
-Return the cost of point `x` in the cache of `p`. Does not check if 
+Return the cost of point `x` in the cache of `p`. Does not check if
 `x` is in the cache, use `CacheQuery` to check.
 """
 CacheGet(p::AbstractProblem, x::Vector) = CacheGet(p.cache, x)
@@ -85,11 +85,11 @@ CacheGet(p::AbstractProblem, x::Vector) = CacheGet(p.cache, x)
 """
     CacheRandomSample(p::AbstractProblem, n::Int)
 
-Returns a uniformly sampled collection of `n` points from the cache. Points 
+Returns a uniformly sampled collection of `n` points from the cache. Points
 can be repeated in the sample.
 """
 CacheRandomSample(p::AbstractProblem, n::Int) = CacheRandomSample(p.cache, n)
-(CacheRandomSample(c::PointCache{T}, n::Int)::Vector{Vector{T}}) where T = 
+(CacheRandomSample(c::PointCache{T}, n::Int)::Vector{Vector{T}}) where T =
     length(c.order) == 0 ? [] : rand(c.order, n)
 
 """
@@ -130,4 +130,4 @@ function CacheFilter(c::PointCache{T}, points::Vector{Vector{T}}
     qf = p -> !CacheQuery(c, p)
     return filter(qt, points),filter(qf, points)
 end
-                    
+
