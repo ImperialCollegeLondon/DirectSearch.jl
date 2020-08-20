@@ -23,7 +23,7 @@ choices are (LTMADS)[@ref] and (NullSearch)[@ref] respectively.
 Note that if working with `Float64` (normally the case) then the type
 parameterisation can be ignored.
 """
-mutable struct DSProblem{T} <: AbstractProblem{T}
+mutable struct DSProblem{T, MT} <: AbstractProblem{T} where {MT <: AbstractMesh}
     #= Problem Definition =#
     objective::Function
     constraints::Constraints{T}
@@ -56,7 +56,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     status::Status
 
     #= Solver Config =#
-    config::Config{T}
+    config::Config{T, MT}
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
@@ -70,7 +70,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
                           kwargs...
                          ) where T
 
-        p = new()
+        p = new{T, Mesh{T}}()
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
