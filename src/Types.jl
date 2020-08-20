@@ -50,10 +50,10 @@ be user-edited.
 Generally these are set at the start (automatically or via setter functions)
 and don't change.
 """
-mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh}
+mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch}
 
     poll::AbstractPoll
-    search::AbstractSearch
+    search::ST
 
     mesh::MT
     meshscale::Vector{FT}
@@ -69,7 +69,7 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh}
                         opportunistic::Bool=false,
                         kwargs...
                        ) where {FT<:AbstractFloat}
-        c = new{FT, typeof(mesh)}()
+        c = new{FT, typeof(mesh), typeof(search)}()
 
         c.poll = poll
         c.search = search

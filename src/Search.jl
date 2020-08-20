@@ -25,7 +25,7 @@ Search method that returns an empty vector.
 
 Use when no search method is desired.
 """
-GenerateSearchPoints(p::DSProblem, ::NullSearch) = []
+(GenerateSearchPoints(p::DSProblem{T}, ::NullSearch)::Vector{Vector{T}}) where T = []
 
 
 """
