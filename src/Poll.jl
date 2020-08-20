@@ -16,8 +16,7 @@ end
 Generate a set of directions with the configured polling algorithm, then return
 the set of points these directions give from the incumbent points.
 """
-function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh
-                           )::Vector{Vector{T}} where T
+function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} where T
     points = []
     dirs = GenerateDirections(p)
 
