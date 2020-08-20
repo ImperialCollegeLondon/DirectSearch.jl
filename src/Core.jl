@@ -56,7 +56,7 @@ mutable struct DSProblem{T} <: AbstractProblem{T}
     status::Status
 
     #= Solver Config =#
-    config::Config
+    config::Config{T}
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
