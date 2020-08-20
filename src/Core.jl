@@ -26,7 +26,7 @@ parameterisation can be ignored.
 mutable struct DSProblem{T} <: AbstractProblem{T}
     #= Problem Definition =#
     objective::Function
-    constraints::Constraints
+    constraints::Constraints{T}
     #Problem size
     N::Int
     user_initial_point::Union{Vector{T},Nothing}
@@ -298,20 +298,20 @@ function Finish(p)
 end
 
 """
-    EvaluatePoint!(p::DSProblem{T}, trial_points)::IterationOutcome where T
+    EvaluatePoint!(p::DSProblem{FT}, trial_points)::IterationOutcome where {FT<:AbstractFloat}
 
 Determine whether the set of trial points result in a dominating, improving, or unsuccesful
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
-function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::IterationOutcome where {T<:AbstractFloat}
+function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
 
     #Variables to store the best evaluated points
-    feasible_point = isnothing(p.x) ? Inf * ones(p.N) : p.x
-    feasible_cost = isnothing(p.x_cost) ? Inf : p.x_cost
-    infeasible_point = isnothing(p.i) ? Inf * ones(p.N) : p.i
-    infeasible_cost = isnothing(p.i_cost) ? Inf : p.i_cost
+    feasible_point = isnothing(p.x) ? inf(FT) * ones(p.N) : p.x
+    feasible_cost = isnothing(p.x_cost) ? inf(FT) : p.x_cost
+    infeasible_point = isnothing(p.i) ? inf(FT) * ones(p.N) : p.i
+    infeasible_cost = isnothing(p.i_cost) ? inf(FT) : p.i_cost
 
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
@@ -354,8 +354,8 @@ function EvaluatePoint!(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Itera
 
     result = Unsuccessful
 
-    incum_i_cost = isnothing(p.i_cost) ? Inf : p.i_cost
-    incum_x_cost = isnothing(p.x_cost) ? Inf : p.x_cost
+    incum_i_cost = isnothing(p.i_cost) ? inf(FT) : p.i_cost
+    incum_x_cost = isnothing(p.x_cost) ? inf(FT) : p.x_cost
 
 
     # Dominates if there is a feasible improvement, or an infeasible point with
