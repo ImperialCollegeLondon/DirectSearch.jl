@@ -23,7 +23,7 @@ choices are (LTMADS)[@ref] and (NullSearch)[@ref] respectively.
 Note that if working with `Float64` (normally the case) then the type
 parameterisation can be ignored.
 """
-mutable struct DSProblem{T, MT, ST, PT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll}
+mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll, CT <: AbstractCache}
     #= Problem Definition =#
     objective::Function
     constraints::Constraints{T}
@@ -47,7 +47,7 @@ mutable struct DSProblem{T, MT, ST, PT} <: AbstractProblem{T} where {MT <: Abstr
     #Infeasible incumbent point evaluated cost
     i_cost::Union{T,Nothing}
 
-    cache::AbstractCache
+    cache::CT
 
     #TODO: proper stopping conditions
     iteration_limit::Int
@@ -70,7 +70,7 @@ mutable struct DSProblem{T, MT, ST, PT} <: AbstractProblem{T} where {MT <: Abstr
                           kwargs...
                          ) where T
 
-        p = new{T, Mesh{T}, typeof(search), typeof(poll)}()
+        p = new{T, Mesh{T}, typeof(search), typeof(poll), PointCache{T}}()
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
@@ -79,7 +79,7 @@ mutable struct DSProblem{T, MT, ST, PT} <: AbstractProblem{T} where {MT <: Abstr
 
         p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
         p.status = Status()
-        p.cache=PointCache{T}()
+        p.cache = PointCache{T}()
         p.constraints = Constraints{T}()
 
         p.x = nothing
