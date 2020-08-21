@@ -16,7 +16,9 @@ mutable struct LTMADS{T} <: AbstractPoll
     b::Dict{T,Vector{T}}
     i::Dict{T,Int}
     maximal_basis::Bool
+
     LTMADS(;kwargs...) = LTMADS{Float64}(;kwargs...)
+
     function LTMADS{T}(;maximal_basis=true) where T
         g = new()
         g.b = Dict{T, Vector{T}}()

@@ -71,10 +71,10 @@ const DefaultProgressiveRef = CollectionIndex(2)
 
 
 """
-    ConstraintCollection{T,C}(h_max::T,
-                              h_max_update::Function,
-                              aggregator::Function
-                             ) where {T,C<:AbstractConstraint}
+    ConstraintCollection{FT,C}(h_max::FT,
+                               h_max_update::Function,
+                               aggregator::Function
+                              ) where {FT<:AbstractFloat,C<:AbstractConstraint}
 
 Contains multiple constraints of the same type that have the same settings
 applied to them.
@@ -88,22 +88,23 @@ collection into a single `h` result.
 Defaults for each of these values are set in the `AddProgressiveCollection` and
 `AddExtremeCollection` functions.
 """
-mutable struct ConstraintCollection{T,C<:AbstractConstraint}
+mutable struct ConstraintCollection{FT<:AbstractFloat, C<:AbstractConstraint}
     constraints::Vector{C}
     count::Int
     ignore::Bool
-    h_max::T
+    h_max::FT
     result_aggregate::Function
-    violation::T
-    function ConstraintCollection{T,C}(h_max::T, aggregator::Function
-                                      ) where {T,C<:AbstractConstraint}
-        c = new()
+    violation::FT
+
+    function ConstraintCollection{FT, C}(h_max::FT, aggregator::Function
+                                        ) where {FT<:AbstractFloat, C<:AbstractConstraint}
+        c = new{FT, C}()
         c.constraints = []
         c.count = 0
         c.ignore = false
         c.h_max = h_max
         c.result_aggregate = aggregator
-        c.violation = 0
+        c.violation = zero(FT)
         return c
     end
 end
@@ -149,26 +150,27 @@ mutable struct ProgressiveConstraint <: AbstractProgressiveConstraint
 end
 
 """
-    ConstraintCache{T}
+    ConstraintCache{FT<:AbstractFloat}
 
 Store constraint information on an iteration-by-iteration basis.
 
 Stores the final infeasible point hmax value of the previous iteration.
 Also stores the collection hmax values computed for each point in an iteration.
 """
-mutable struct ConstraintCache{T}
-    OldHmax::T
-    hmax_map::Dict{Vector{T},Vector{T}}
-    function ConstraintCache{T}() where T
-        c = new()
-        c.OldHmax = Inf
-        c.hmax_map = Dict{Vector{T},Vector{T}}()
+mutable struct ConstraintCache{FT<:AbstractFloat}
+    OldHmax::FT
+    hmax_map::Dict{Vector{FT}, Vector{FT}}
+
+    function ConstraintCache{FT}() where {FT<:AbstractFloat}
+        c = new{FT}()
+        c.OldHmax = inf(FT)
+        c.hmax_map = Dict{Vector{FT}, Vector{FT}}()
         return c
     end
 end
 
 """
-    Constraints{T}() where T
+    Constraints{FT<:AbstractFloat}()
 
 Create an object that constains multiple `ConstraintCollection` objects and their
 corresponding `ConstraintCache`.
@@ -176,15 +178,16 @@ corresponding `ConstraintCache`.
 Upon creation `Constraints` is automaticvally populated with two constraint
 collections, an `ExtremeCollection` and a `ProgressiveCollection`.
 """
-mutable struct Constraints{T}
+mutable struct Constraints{FT<:AbstractFloat}
     collections::Vector{ConstraintCollection}
     count::Int
-    cache::ConstraintCache{T}
-    function Constraints{T}() where T
-        c = new()
+    cache::ConstraintCache{FT}
+
+    function Constraints{FT}() where {FT<:AbstractFloat}
+        c = new{FT}()
         c.count = 0
         c.collections = []
-        c.cache = ConstraintCache{T}()
+        c.cache = ConstraintCache{FT}()
 
         AddExtremeCollection(c)
         AddProgressiveCollection(c)
@@ -340,8 +343,8 @@ function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,Progr
 end
 
 """
-    ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint},
-                                   x::Vector{T})::ConstraintOutcome where T
+    ConstraintCollectionEvaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
+                                   x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
 
 Evalute every constraint within extreme constraint collection `collection` for
 point `x`.
@@ -349,12 +352,12 @@ point `x`.
 If any constraint returns false  or a value greater than 0 then a
 `StrongInfeasible` result is returned. Otherwise a `Feasible` result is returned.
 """
-function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ExtremeConstraint},
-                                        x::Vector{T})::ConstraintOutcome where T
+function ConstraintCollectionEvaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
+                                        x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
     for c in collection.constraints
         c.ignore && continue
         v = c.f(x)
-        v < convert(T,0.0) || v == true || return StrongInfeasible
+        v < zero(FT) || v == true || return StrongInfeasible
     end
 
     return Feasible
@@ -458,8 +461,8 @@ function AddProgressiveConstraint(p::Constraints, c::Vector{Function};
 end
 
 """
-    AddProgressiveCollection(p::Constraints{T}; h_max=Inf, h_max_update::Function=h_max_update,
-                             aggregator::Function=x->max(0,x)^2)::CollectionIndex where T
+    AddProgressiveCollection(p::Constraints{FT}; h_max=Inf, h_max_update::Function=h_max_update,
+                             aggregator::Function=x->max(0,x)^2)::CollectionIndex where {FT<:AbstractFloat}
 
 Instantiate a new constraint collection within the problem. Returns an index that refers to this
 new collection.
@@ -474,10 +477,10 @@ The default constraint settings match those from Audet & Dennis 2009:
 """
 AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
 
-function AddProgressiveCollection(p::Constraints{T}; h_max=Inf,
-                                  aggregator::Function=x->max(0,x)^2)::CollectionIndex where T
+function AddProgressiveCollection(p::Constraints{FT}; h_max=inf(FT),
+                                  aggregator::Function=x->max(0,x)^2)::CollectionIndex where {FT<:AbstractFloat}
     push!(p.collections,
-          ConstraintCollection{T,ProgressiveConstraint}(h_max, aggregator))
+          ConstraintCollection{FT,ProgressiveConstraint}(h_max, aggregator))
     p.count += 1
 
     return CollectionIndex(p.count)
@@ -485,17 +488,16 @@ end
 
 
 """
-    AddExtremeCollection(p::Constraints{T})::CollectionIndex where T
+    AddExtremeCollection(p::Constraints{FT})::CollectionIndex where {FT<:AbstractFloat}
 
 Instantiate a new constraint collection for extreme constraints. Returns an index that
 refers to the new collection.
 """
-(AddExtremeCollection(p::AbstractProblem)::CollectionIndex) where T =
-    AddExtremeCollection(p.constraints)
+(AddExtremeCollection(p::AbstractProblem)::CollectionIndex) = AddExtremeCollection(p.constraints)
 
-function AddExtremeCollection(p::Constraints{T})::CollectionIndex where T
+function AddExtremeCollection(p::Constraints{FT})::CollectionIndex where {FT<:AbstractFloat}
     f() = error("Should not be calling aggregator update for an extreme constraint collection")
-    push!(p.collections, ConstraintCollection{T,ExtremeConstraint}(0.0, f))
+    push!(p.collections, ConstraintCollection{FT,ExtremeConstraint}(zero(FT), f))
     p.count += 1
     return CollectionIndex(p.count)
 end

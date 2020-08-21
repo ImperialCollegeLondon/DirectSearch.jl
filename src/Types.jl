@@ -50,26 +50,26 @@ be user-edited.
 Generally these are set at the start (automatically or via setter functions)
 and don't change.
 """
-mutable struct Config{T}
+mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, PT<:AbstractPoll}
 
-    poll::AbstractPoll
-    search::AbstractSearch
+    poll::PT
+    search::ST
 
-    mesh::AbstractMesh
-    meshscale::Vector{T}
+    mesh::MT
+    meshscale::Vector{FT}
 
     num_procs::Int
     max_simultanious_evaluations::Int
     opportunistic::Bool
 
-    function Config{T}(N::Int,
-                       poll::AbstractPoll,
-                       search::AbstractSearch,
-                       mesh::AbstractMesh=Mesh{T}(N);
-                       opportunistic::Bool=false,
-                       kwargs...
-                      ) where T
-        c = new()
+    function Config{FT}(N::Int,
+                        poll::AbstractPoll,
+                        search::AbstractSearch,
+                        mesh::AbstractMesh=Mesh{FT}(N);
+                        opportunistic::Bool=false,
+                        kwargs...
+                       ) where {FT<:AbstractFloat}
+        c = new{FT, typeof(mesh), typeof(search), typeof(poll)}()
 
         c.poll = poll
         c.search = search
@@ -85,22 +85,22 @@ mutable struct Config{T}
     end
 end
 
-mutable struct Status{T}
-    function_evaluations::Int
-    iteration::Int
+mutable struct Status
+    function_evaluations::Int64
+    iteration::Int64
     optimization_status::OptimizationStatus
 
     #= Time Running Totals =#
-    runtime_total::T
-    search_time_total::T
-    poll_time_total::T
-    blackbox_time_total::T
+    runtime_total::Float64
+    search_time_total::Float64
+    poll_time_total::Float64
+    blackbox_time_total::Float64
 
     #= Start/End Time =#
-    start_time::T
-    end_time::T
+    start_time::Float64
+    end_time::Float64
 
-    function Status{T}() where T
+    function Status()
         s = new()
 
         s.function_evaluations = 0

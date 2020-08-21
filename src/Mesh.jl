@@ -7,6 +7,7 @@ Contains functions/type prototypes for the mesh.
 #Should make an effort to follow the naming conventions established
 #in existing methods in order to give compatibility between methods
 abstract type AbstractMesh end
+
 mutable struct Mesh{T} <: AbstractMesh
     G::Matrix{T}
     D::Matrix{T}

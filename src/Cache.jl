@@ -90,7 +90,7 @@ can be repeated in the sample.
 """
 CacheRandomSample(p::AbstractProblem, n::Int) = CacheRandomSample(p.cache, n)
 (CacheRandomSample(c::PointCache{T}, n::Int)::Vector{Vector{T}}) where T =
-    length(c.order) == 0 ? [] : rand(c.order, n)
+    length(c.order) == 0 ? Vector{T}[] : rand(c.order, n)
 
 """
     CacheInitialPoint(p::AbstractProblem)
