@@ -78,6 +78,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         p.sense = sense
 
         p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
+
         p.status = Status()
         p.cache = PointCache{T}()
         p.constraints = Constraints{T}()
