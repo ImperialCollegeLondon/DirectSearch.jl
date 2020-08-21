@@ -93,7 +93,7 @@ function Halton(N::Int64, t::Int64)
 end
 
 function HaltonEntry(p,t)
-    u = 0
+    u = 0.0
     a_r = HaltonCoefficient(p,t)
     for (r,a) in enumerate(a_r)
         u += a/(p^r) #note that the equation is a/p^r+1, but julia indexes from 1
@@ -102,11 +102,11 @@ function HaltonEntry(p,t)
 end
 
 function HaltonCoefficient(p,t)
-    t==0 && return []
+    t==0 && return Int[]
     #Maximum non-zero value of r
     r_max = floor(Int64, log(p, t))
     #Need to give values for 0:r_max
-    a = zeros(Int(r_max+1))
+    a = zeros(Int, r_max+1)
     t_local = t
     for r in r_max:-1:0
         t_local == 0 && break
@@ -134,7 +134,7 @@ end
 
 #TODO use a better defined algorithm for this operation
 #(some kind of numerical line search?)
-function argmax(x, f, lim; iter_lim = 15)
+function argmax(x, f::Function, lim; iter_lim = 15)
     bump = 1
     iter = 1
 
