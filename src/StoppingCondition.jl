@@ -25,10 +25,8 @@ end
 
 StoppingConditionStatus(::T) where T <: AbstractStoppingCondition = "Unknown stopping condition status"
 
-
-SetupStoppingConditions(p::DSProblem) = SetupStoppingConditions(p.stoppingconditions)
-function SetupStoppingConditions(s::Vector{AbstractStoppingCondition})
-    for c in s
+function SetupStoppingConditions(p::DSProblem)
+    for c in p.stoppingconditions
         SetupStoppingCondition(p, c)
     end
 end
