@@ -6,7 +6,7 @@
         @test p.N == N
         @test typeof(p.config.search) == NullSearch
         @test typeof(p.config.poll) == LTMADS{T}
-        @test p.status.optimization_status == DS.Unoptimized
+        @test p.status.optimization_status == "Unoptimized"
         @test p.sense == DS.Min
         @test p.config.max_simultanious_evaluations == 1
         @test typeof(p.config.mesh) == DS.Mesh{T}
@@ -64,7 +64,7 @@
         @test p.user_initial_point == [5.0, 5.0]
 
         # Iteration limits
-        @test p.iteration_limit == 1000
+        @test p.stoppingconditions[1].limit == 1000
         @test p.status.iteration == 0
 
         Optimize!(p)
@@ -72,11 +72,9 @@
         @test p.status.iteration == 1000
         @test_throws ErrorException SetIterationLimit(p, 900)
         SetIterationLimit(p, 1100)
-        @test p.iteration_limit == 1100
-        BumpIterationLimit(p)
-        @test p.iteration_limit == 1200
-        BumpIterationLimit(p; i=200)
-        @test p.iteration_limit == 1400
+        @test p.stoppingconditions[1].limit == 1100
+        BumpIterationLimit(p, 200)
+        @test p.stoppingconditions[1].limit == 1300
 
         # Variable Ranges
         p = DSProblem{T}(3)
@@ -184,6 +182,7 @@
 
         #Confirm that all points are checked and best is taken
         p = DSProblem(3; objective=x->sum(x.^2), initial_point=[10, 10, 10])
+        SetIterationLimit(p, 1000) #Needed for setup to run
         DS.Setup(p)
         SetOpportunisticEvaluation(p, opportunistic=false)
         @test p.x == [10.0, 10.0, 10.0]
@@ -191,6 +190,7 @@
         @test p.x == [5.0,5.0,5.0]
 
         p = DSProblem(3; objective=x->sum(x.^2), initial_point=[10, 10, 10])
+        SetIterationLimit(p, 1000) #Needed for setup to run
         DS.Setup(p)
         SetOpportunisticEvaluation(p, opportunistic=true)
         @test p.x == [10.0, 10.0, 10.0]
