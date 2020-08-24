@@ -49,14 +49,13 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
     cache::CT
 
-    #TODO: proper stopping conditions
-    iteration_limit::Int
-
     #= Runtime data =#
     status::Status
 
     #= Solver Config =#
     config::Config{T, MT, ST, PT}
+
+    stoppingconditions::Vector{AbstractStoppingCondition}
 
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
@@ -83,6 +82,11 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         p.cache = PointCache{T}()
         p.constraints = Constraints{T}()
 
+        p.stoppingconditions = AbstractStoppingCondition[
+            IterationStoppingCondition(iteration_limit),
+            MeshPrecisionStoppingCondition(),
+        ]
+
         p.x = nothing
         p.x_cost = nothing
         p.i = nothing
@@ -92,20 +96,12 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
             p.objective = objective
         end
 
-        #TODO stopping conditions
-        p.iteration_limit = iteration_limit
-
         return p
     end
 end
 
 MeshUpdate!(p::DSProblem, result::IterationOutcome) =
     MeshUpdate!(p.config.mesh, p.config.poll, result)
-
-(GetMeshSize(p::DSProblem{T})::T) where T = p.config.mesh.Δᵐ
-
-min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
-min_mesh_size(::DSProblem{T}) where T = eps(T)/2
 
 """
     SetMaxEvals(p::DSProblem, m::Int)
@@ -149,28 +145,6 @@ Set the problem sense. Valid values for `sense` are `DS.Min` and `DS.Max`.
 """
 function SetSense(p::DSProblem, sense::ProblemSense)
     p.sense = sense
-end
-
-"""
-    SetIterationLimit(p::DSProblem, i::Int)
-
-Set the maximum number of iterations to `i`.
-"""
-function SetIterationLimit(p::DSProblem, i::Int)
-    if i < p.status.iteration
-        error("Cannot set iteration limit to lower than the number of iterations that have run")
-    else
-        p.iteration_limit = i
-    end
-end
-
-"""
-    BumpIterationLimit(p::DSProblem, val::Int=100)
-
-Increase the iteration limit by `i`.
-"""
-function BumpIterationLimit(p::DSProblem; i::Int=100)
-    p.iteration_limit += i
 end
 
 """
@@ -254,16 +228,8 @@ function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete
     Setup(p)
 
-    while p.status.iteration < p.iteration_limit && GetMeshSize(p) >= min_mesh_size(p)
+    while CheckStoppingConditions(p)
         OptimizeLoop(p)
-    end
-
-    #TODO these will be tidied when proper stopping conditions are implemented
-    if p.status.iteration > p.iteration_limit
-        p.status.optimization_status = IterationLimit
-    end
-    if GetMeshSize(p) <= min_mesh_size(p)
-        p.status.optimization_status = PrecisionLimit
     end
 
     Finish(p)
@@ -272,6 +238,7 @@ end
 #Initialise solver
 function Setup(p)
     p.status.start_time = time()
+    SetupStoppingConditions(p)
     EvaluateInitialPoint(p)
     CacheOrderPush(p)
 end
@@ -317,6 +284,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
 
+    evals = 0
     #Iterate over all trial points
     for point in trial_points
         feasibility = ConstraintEvaluation(p.constraints, point)
@@ -327,6 +295,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
         #Point is feasible for relaxed constraints, so evaluate it
         t1 = time()
         cost = function_evaluation(p, point)
+        evals += 1
         p.status.blackbox_time_total += time() - t1
 
         #To determine if a point is dominating or improving the combined h_max is needed
