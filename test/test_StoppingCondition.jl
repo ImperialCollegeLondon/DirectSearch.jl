@@ -18,27 +18,27 @@
         @test p.stoppingconditions[3].limit == 1234
     end
 
-    @testset "CheckStoppingConditions" begin
+    @testset "_check_stoppingconditions" begin
         p = DSProblem(4)
         c = DS.AbstractStoppingCondition[]
-        @test DS.CheckStoppingConditions(p, c) == true
+        @test DS._check_stoppingconditions(p, c) == true
 
         p.status.iteration = 100
         push!(c, DS.IterationStoppingCondition(200))
-        @test DS.CheckStoppingConditions(p, c) == true
+        @test DS._check_stoppingconditions(p, c) == true
 
         p.status.iteration = 200
-        @test DS.CheckStoppingConditions(p, c) == false
+        @test DS._check_stoppingconditions(p, c) == false
 
         p.status.iteration = 300
-        @test DS.CheckStoppingConditions(p, c) == false
+        @test DS._check_stoppingconditions(p, c) == false
 
 
         push!(c, DS.IterationStoppingCondition(400))
-        @test DS.CheckStoppingConditions(p, c) == false
+        @test DS._check_stoppingconditions(p, c) == false
     end
 
-    @testset "SetStatus" begin
+    @testset "setstatus" begin
         p = DSProblem(4)
 
         @test p.status.optimization_status == "Unoptimized"
@@ -47,15 +47,15 @@
         DS.StoppingConditionStatus(::test_sc) = "test status message"
         DS.CheckStoppingCondition(p::DSProblem, s::test_sc) = false
 
-        DS.SetStatus(p, test_sc())
+        DS.setstatus(p, test_sc())
         @test p.status.optimization_status == "test status message"
 
         #First false sc reached in the array is the reported status 
         DS.AddStoppingCondition(p, test_sc())
-        @test DS.CheckStoppingConditions(p) == false
+        @test DS._check_stoppingconditions(p) == false
         @test p.status.optimization_status == "test status message"
         p.status.iteration = 1001
-        @test DS.CheckStoppingConditions(p) == false
+        @test DS._check_stoppingconditions(p) == false
         @test p.status.optimization_status == "Iteration limit"
     end
 
@@ -66,7 +66,7 @@
         @test DS.StoppingConditionStatus(another_test_sc()) == "Unknown stopping condition status"
         p = DSProblem(4)
         DS.AddStoppingCondition(p, another_test_sc())
-        DS.CheckStoppingConditions(p)
+        DS._check_stoppingconditions(p)
         @test p.status.optimization_status == "Unknown stopping condition status"
     end
 

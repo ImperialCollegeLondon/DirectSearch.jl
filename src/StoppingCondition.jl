@@ -5,13 +5,13 @@ function AddStoppingCondition(p::DSProblem, c::T) where T <: AbstractStoppingCon
     push!(p.stoppingconditions, c)
 end
 
-CheckStoppingConditions(p::DSProblem) = CheckStoppingConditions(p, p.stoppingconditions)
-function CheckStoppingConditions(p::DSProblem, c::Vector{T}) where T <: AbstractStoppingCondition
+_check_stoppingconditions(p::DSProblem) = _check_stoppingconditions(p, p.stoppingconditions)
+function _check_stoppingconditions(p::DSProblem, c::Vector{T}) where T <: AbstractStoppingCondition
     for condition in c
         #Stopping conditions return true if optimisation should continue,
         #false if the condition is met and optimisation should stop
         if CheckStoppingCondition(p, condition) == false
-            SetStatus(p, condition)
+            setstatus(p, condition)
             return false
         end
     end
@@ -19,7 +19,7 @@ function CheckStoppingConditions(p::DSProblem, c::Vector{T}) where T <: Abstract
     return true
 end
 
-function SetStatus(p, s::T) where T <: AbstractStoppingCondition
+function setstatus(p, s::T) where T <: AbstractStoppingCondition
     p.status.optimization_status = StoppingConditionStatus(s)
 end
 

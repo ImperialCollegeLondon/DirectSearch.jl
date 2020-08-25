@@ -228,7 +228,7 @@ function Optimize!(p::DSProblem)
     #TODO check that problem definition is complete
     Setup(p)
 
-    while CheckStoppingConditions(p)
+    while _check_stoppingconditions(p)
         OptimizeLoop(p)
     end
 
