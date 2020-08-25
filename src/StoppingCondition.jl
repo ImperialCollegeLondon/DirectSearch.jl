@@ -33,6 +33,11 @@ end
 
 SetupStoppingCondition(p::DSProblem, ::AbstractStoppingCondition) = nothing
 
+_get_conditionindexes(p::DSProblem, target::Type) = _get_conditionindexes(p.stoppingconditions, target)
+_get_conditionindexes(s::Vector{AbstractStoppingCondition}, target::Type) = 
+    [i for (i,v) in enumerate(s) if typeof(v) == target]
+
+
 #===== Built-in stopping conditions =====#
 
 #Iteration limit
@@ -59,7 +64,10 @@ function SetIterationLimit(p::DSProblem, i::Int)
     if i < p.status.iteration
         error("Cannot set iteration limit to lower than the number of iterations that have run")
     else
-        p.stoppingconditions[1].limit = i
+        iteration_indexes = _get_conditionindexes(p, IterationStoppingCondition)
+        for index in iteration_indexes
+            p.stoppingconditions[index].limit = i
+        end
     end
 end
 
@@ -69,7 +77,10 @@ end
 Increase the iteration limit by `i`.
 """
 function BumpIterationLimit(p::DSProblem, i::Int)
-    p.stoppingconditions[1].limit += i
+    iteration_indexes = _get_conditionindexes(p, IterationStoppingCondition)
+    for index in iteration_indexes
+        p.stoppingconditions[index].limit += i
+    end
 end
 
 
