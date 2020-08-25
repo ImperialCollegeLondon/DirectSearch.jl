@@ -284,7 +284,6 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
 
-    evals = 0
     #Iterate over all trial points
     for point in trial_points
         feasibility = ConstraintEvaluation(p.constraints, point)
@@ -295,7 +294,6 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
         #Point is feasible for relaxed constraints, so evaluate it
         t1 = time()
         cost = function_evaluation(p, point)
-        evals += 1
         p.status.blackbox_time_total += time() - t1
 
         #To determine if a point is dominating or improving the combined h_max is needed
