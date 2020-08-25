@@ -95,7 +95,8 @@ using LinearAlgebra
         @test isdefined(p, :constraints)
         @test p.sense == DS.Min
         @test p.N == 3
-        @test p.status.optimization_status == "Unoptimized"
+        @test p.status.optimization_status_string == "Unoptimized"
+        @test p.status.optimization_status == DS.Unoptimized
     end
 
     @testset "MeshUpdate" begin

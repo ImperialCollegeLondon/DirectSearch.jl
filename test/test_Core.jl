@@ -6,7 +6,8 @@
         @test p.N == N
         @test typeof(p.config.search) == NullSearch
         @test typeof(p.config.poll) == LTMADS{T}
-        @test p.status.optimization_status == "Unoptimized"
+        @test p.status.optimization_status == DS.Unoptimized
+        @test p.status.optimization_status_string == "Unoptimized"
         @test p.sense == DS.Min
         @test p.config.max_simultanious_evaluations == 1
         @test typeof(p.config.mesh) == DS.Mesh{T}

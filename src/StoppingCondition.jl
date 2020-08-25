@@ -20,7 +20,15 @@ function _check_stoppingconditions(p::DSProblem, c::Vector{T}) where T <: Abstra
 end
 
 function setstatus(p, s::T) where T <: AbstractStoppingCondition
-    p.status.optimization_status = StoppingConditionStatus(s)
+    p.status.optimization_status_string = StoppingConditionStatus(s)
+
+    if typeof(s) == IterationStoppingCondition
+        p.status.optimization_status = IterationLimit
+    elseif typeof(s) == MeshPrecisionStoppingCondition
+        p.status.optimization_status = PrecisionLimit
+    else
+        p.status.optimization_status = OtherStoppingCondition
+    end
 end
 
 StoppingConditionStatus(::T) where T <: AbstractStoppingCondition = "Unknown stopping condition status"

@@ -41,22 +41,23 @@
     @testset "setstatus" begin
         p = DSProblem(4)
 
-        @test p.status.optimization_status == "Unoptimized"
+        @test p.status.optimization_status == DS.Unoptimized
+        @test p.status.optimization_status_string == "Unoptimized"
  
         struct test_sc <: DS.AbstractStoppingCondition end
         DS.StoppingConditionStatus(::test_sc) = "test status message"
         DS.CheckStoppingCondition(p::DSProblem, s::test_sc) = false
 
         DS.setstatus(p, test_sc())
-        @test p.status.optimization_status == "test status message"
+        @test p.status.optimization_status_string == "test status message"
 
         #First false sc reached in the array is the reported status 
         DS.AddStoppingCondition(p, test_sc())
         @test DS._check_stoppingconditions(p) == false
-        @test p.status.optimization_status == "test status message"
+        @test p.status.optimization_status_string == "test status message"
         p.status.iteration = 1001
         @test DS._check_stoppingconditions(p) == false
-        @test p.status.optimization_status == "Iteration limit"
+        @test p.status.optimization_status_string == "Iteration limit"
     end
 
     @testset "StoppingConditionStatus" begin
@@ -67,7 +68,8 @@
         p = DSProblem(4)
         DS.AddStoppingCondition(p, another_test_sc())
         DS._check_stoppingconditions(p)
-        @test p.status.optimization_status == "Unknown stopping condition status"
+        @test p.status.optimization_status == DS.OtherStoppingCondition
+        @test p.status.optimization_status_string == "Unknown stopping condition status"
     end
 
 end

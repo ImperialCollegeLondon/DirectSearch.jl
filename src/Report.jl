@@ -97,6 +97,7 @@ function report_status(p::DSProblem)::ReportSection
     push!(entries, "Function Evaluations" => p.status.function_evaluations)
     push!(entries, "Iterations" => p.status.iteration)
     push!(entries, "Optimization Status" => p.status.optimization_status)
+    push!(entries, "Optimization Status String" => p.status.optimization_status_string)
 
     push!(entries, nothing)
 
