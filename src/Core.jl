@@ -238,7 +238,7 @@ end
 #Initialise solver
 function Setup(p)
     p.status.start_time = time()
-    SetupStoppingConditions(p)
+    _init_stoppingconditions(p)
     EvaluateInitialPoint(p)
     CacheOrderPush(p)
 end

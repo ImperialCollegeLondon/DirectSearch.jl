@@ -25,13 +25,13 @@ end
 
 StoppingConditionStatus(::T) where T <: AbstractStoppingCondition = "Unknown stopping condition status"
 
-function SetupStoppingConditions(p::DSProblem)
+function _init_stoppingconditions(p::DSProblem)
     for c in p.stoppingconditions
-        SetupStoppingCondition(p, c)
+        init_stoppingcondition(p, c)
     end
 end
 
-SetupStoppingCondition(p::DSProblem, ::AbstractStoppingCondition) = nothing
+init_stoppingcondition(p::DSProblem, ::AbstractStoppingCondition) = nothing
 
 _get_conditionindexes(p::DSProblem, target::Type) = _get_conditionindexes(p.stoppingconditions, target)
 _get_conditionindexes(s::Vector{AbstractStoppingCondition}, target::Type) = 
@@ -49,7 +49,7 @@ StoppingConditionStatus(::IterationStoppingCondition) = "Iteration limit"
 
 CheckStoppingCondition(p::DSProblem, s::IterationStoppingCondition) = p.status.iteration < s.limit
 
-function SetupStoppingCondition(p::DSProblem, s::IterationStoppingCondition)
+function init_stoppingcondition(p::DSProblem, s::IterationStoppingCondition)
     if s.limit == -1 
         error("Please set a maximum number of iterations")
     end
