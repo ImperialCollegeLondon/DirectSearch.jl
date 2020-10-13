@@ -1,7 +1,5 @@
 module DirectSearch
 
-include("./Utils.jl")
-
 include("./Types.jl")
 include("./Cache.jl")
 include("./Constraints.jl")

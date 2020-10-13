@@ -309,10 +309,10 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     isempty(trial_points) && return Unsuccessful
 
     #Variables to store the best evaluated points
-    feasible_point = isnothing(p.x) ? inf(FT) * ones(p.N) : p.x
-    feasible_cost = isnothing(p.x_cost) ? inf(FT) : p.x_cost
-    infeasible_point = isnothing(p.i) ? inf(FT) * ones(p.N) : p.i
-    infeasible_cost = isnothing(p.i_cost) ? inf(FT) : p.i_cost
+    feasible_point = isnothing(p.x) ? FT(Inf) * ones(p.N) : p.x
+    feasible_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
+    infeasible_point = isnothing(p.i) ? FT(Inf) * ones(p.N) : p.i
+    infeasible_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
 
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
@@ -355,8 +355,8 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
 
     result = Unsuccessful
 
-    incum_i_cost = isnothing(p.i_cost) ? inf(FT) : p.i_cost
-    incum_x_cost = isnothing(p.x_cost) ? inf(FT) : p.x_cost
+    incum_i_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
+    incum_x_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
 
 
     # Dominates if there is a feasible improvement, or an infeasible point with

@@ -163,7 +163,7 @@ mutable struct ConstraintCache{FT<:AbstractFloat}
 
     function ConstraintCache{FT}() where {FT<:AbstractFloat}
         c = new{FT}()
-        c.OldHmax = inf(FT)
+        c.OldHmax = FT(Inf)
         c.hmax_map = Dict{Vector{FT}, Vector{FT}}()
         return c
     end
@@ -477,7 +477,7 @@ The default constraint settings match those from Audet & Dennis 2009:
 """
 AddProgressiveCollection(p::AbstractProblem; kwargs...)::CollectionIndex = AddProgressiveCollection(p.constraints; kwargs...)
 
-function AddProgressiveCollection(p::Constraints{FT}; h_max=inf(FT),
+function AddProgressiveCollection(p::Constraints{FT}; h_max=FT(Inf),
                                   aggregator::Function=x->max(0,x)^2)::CollectionIndex where {FT<:AbstractFloat}
     push!(p.collections,
           ConstraintCollection{FT,ProgressiveConstraint}(h_max, aggregator))
