@@ -34,9 +34,11 @@ abstract type AbstractConstraint end
 
 abstract type AbstractCache end
 
+abstract type AbstractStoppingCondition end
 
 @enum ProblemSense Min Max
-@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit
+
+@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit OtherStoppingCondition
 
 """
     Config(;sense::ProblemSense=Min,
@@ -88,7 +90,9 @@ end
 mutable struct Status
     function_evaluations::Int64
     iteration::Int64
+
     optimization_status::OptimizationStatus
+    optimization_status_string::String
 
     #= Time Running Totals =#
     runtime_total::Float64
@@ -105,6 +109,7 @@ mutable struct Status
 
         s.function_evaluations = 0
         s.iteration = 0
+        s.optimization_status_string = "Unoptimized"
         s.optimization_status = Unoptimized
 
         s.runtime_total = 0.0
