@@ -1,3 +1,8 @@
+using JSON
+using Unmarshal
+using JLD2
+
+export CacheLoadJSON, CacheSaveJSON, CacheLoadJLD2, CacheSaveJLD2
 """
     PointCache{T} <: AbstractCache
 
@@ -131,3 +136,64 @@ function CacheFilter(c::PointCache{T}, points::Vector{Vector{T}}
     return filter(qt, points),filter(qf, points)
 end
 
+CacheSaveJSON(p::AbstractProblem{T}, filename::String) where T = CacheSaveJSON(filename, p.cache)
+function CacheSaveJSON(filename::String, c::PointCache{T}) where T
+    open("$filename.json", "w") do file
+        JSON.print(file, c.costs)
+    end
+end
+
+CacheLoadJSON(p::AbstractProblem{T}, path::String) where T = CacheLoadJSON(path, p.cache, p.N)
+function CacheLoadJSON(path::String, c::PointCache{T}, dim::Int) where T
+    if isfile(path)
+        json_contents = open("$path", "r") do file
+            JSON.parse(file)
+        end
+
+        parsed_costs = Unmarshal.unmarshal(Dict{Vector{T},T}, json_contents)
+
+        key_dim = length(first(keys(parsed_costs)))
+        if key_dim !== dim
+            error("Points of wrong dimension $(key_dim). Expected dimension: $dim ")
+        end
+
+        values_dim = length(first(values(parsed_costs)))
+        if values_dim !== 1
+            error("Costs of wrong dimension $values_dim. Expected dimension: 1")
+        end
+
+        c.costs = parsed_costs
+    else
+        error("File '$path' not found.")
+    end
+end
+
+CacheSaveJLD2(p::AbstractProblem{T}, filename::String) where T = CacheSaveJLD2(filename, p.cache)
+function CacheSaveJLD2(filename::String, c::PointCache{T}) where T
+    jldopen("$filename.jld2", "w") do file
+        file["cache_costs"] = c.costs
+    end
+end
+
+CacheLoadJLD2(p::AbstractProblem{T}, path::String) where T = CacheLoadJLD2(path, p.cache, p.N)
+function CacheLoadJLD2(path::String, c::PointCache{T}, dim::Int) where T
+    if isfile(path)
+        parsed_costs = jldopen("$path", "r") do file
+            file["cache_costs"]
+        end
+
+        key_dim = length(first(keys(parsed_costs)))
+        if key_dim !== dim
+            error("Points of wrong dimension $(key_dim). Expected dimension: $dim ")
+        end
+
+        values_dim = length(first(values(parsed_costs)))
+        if values_dim !== 1
+            error("Costs of wrong dimension $values_dim. Expected dimension: 1")
+        end
+
+        c.costs = parsed_costs
+    else
+        error("File '$path' not found.")
+    end
+end
