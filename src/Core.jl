@@ -2,9 +2,8 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableRange,
-       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!,
-       SetIterationLimit, BumpIterationLimit, SetMaxEvals
+export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetMaxEvals,
+       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!
 
 
 """
@@ -30,6 +29,9 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
     #Problem size
     N::Int
     user_initial_point::Union{Vector{T},Nothing}
+    granularity::Vector{T}
+    lower_bounds::Vector{Union{T, Nothing}}
+    upper_bounds::Vector{Union{T, Nothing}}
     #Barrier threshold
     h_max::T
     sense::ProblemSense
@@ -57,6 +59,8 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
     stoppingconditions::Vector{AbstractStoppingCondition}
 
+    full_output::Bool
+
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
     function DSProblem{T}(N::Int;
@@ -65,7 +69,12 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector=zeros(T, N),
                           iteration_limit::Int=1000,
+                          function_evaluation_limit::Int=5000,
                           sense::ProblemSense=Min,
+                          full_output::Bool=false,
+                          granularity::Vector=zeros(T, N),
+                          min_mesh_size::Union{T,Nothing}=nothing,
+                          min_poll_size::Union{T,Nothing}=nothing,
                           kwargs...
                          ) where T
 
@@ -73,6 +82,9 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
+        p.granularity = convert(Vector{T},granularity)
+        p.lower_bounds = fill(nothing, N)
+        p.upper_bounds = fill(nothing, N)
 
         p.sense = sense
 
@@ -84,7 +96,9 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
         p.stoppingconditions = AbstractStoppingCondition[
             IterationStoppingCondition(iteration_limit),
-            MeshPrecisionStoppingCondition(),
+            FunctionEvaluationStoppingCondition(function_evaluation_limit),
+            MeshPrecisionStoppingCondition{T}(min_mesh_size),
+            PollPrecisionStoppingCondition{T}(min_poll_size)
         ]
 
         p.x = nothing
@@ -95,6 +109,8 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         if objective != nothing
             p.objective = objective
         end
+
+        p.full_output = full_output
 
         return p
     end
@@ -160,6 +176,32 @@ function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
 end
 
 """
+    SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
+
+Set the granularity of the variable with index `i` to 'g`.
+"""
+function SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
+    1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
+    g >= 0 || error("Granularity has to be non-negative.")
+
+    p.granularity[index] = g
+end
+
+"""
+    SetGranularities(p::DSProblem{T}, g::Vector{T}) where T
+
+Call [`SetGranularity`](@ref) for each variable. The vector `g` should contain the granularity 
+for each variable.
+"""
+function SetGranularities(p::DSProblem{T}, g::Vector{T}) where T
+    size(l, 1) == p.N || error("Granularity vector dimensions don't match problem definition")
+
+    for i=1:p.N
+        SetGranularity(p, i, g[i])
+    end
+end
+
+"""
     SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
 
 Set/unset opportunistic evaluation (enables by default).
@@ -186,6 +228,10 @@ function EvaluateInitialPoint(p::DSProblem)
         p.x_cost = p.objective(p.user_initial_point)
         CachePush(p, p.x, p.x_cost)
     end
+
+    p.status.function_evaluations += 1
+
+    p.full_output && InitialPointEvaluationOutput(p, feasibility)
 end
 
 
@@ -199,20 +245,24 @@ varies with a significantly different scale to the others.
 """
 function SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
-    p.config.meshscale[index] = 0.1(u-l)
+    
+    p.lower_bounds[index] = isinf(l) ? nothing : l
+    p.upper_bounds[index] = isinf(u) ? nothing : u
 end
 
 """
 	SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
 
 Call [`SetVariableRange`](@ref) for each variable. The vectors `l` and `u` should contain
-a lower and upper bound for each variable. If it is desired to keep a variable at default
-scaling, then give it upper and lower bounds of `-5` and `5` respectively.
+a lower and upper bound for each variable.
 """
 function SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
     size(l, 1) == p.N || error("Lower bound vector dimensions don't match problem definition")
     size(u, 1) == p.N || error("Upper bound vector dimensions don't match problem definition")
-    p.config.meshscale = @. 0.1(u-l)
+    
+    for i=1:p.N
+        SetVariableRange(p, i, l[i], u[i])
+    end
 end
 
 """
@@ -229,6 +279,7 @@ function Optimize!(p::DSProblem)
     Setup(p)
 
     while _check_stoppingconditions(p)
+        p.full_output && OutputIterationDetails(p)
         OptimizeLoop(p)
     end
 
@@ -238,6 +289,8 @@ end
 #Initialise solver
 function Setup(p)
     p.status.start_time = time()
+    _check_initial_point(p)
+    MeshSetup!(p)
     _init_stoppingconditions(p)
     EvaluateInitialPoint(p)
     CacheOrderPush(p)
@@ -245,10 +298,28 @@ end
 
 #A single iteration of the search->poll->update algorithm loop
 function OptimizeLoop(p)
+    if p.full_output
+        println("Search step:\n")
+    end
     result = Search(p)
+
+    if p.full_output && !(p.config.search isa NullSearch)
+        println("\tResult of Search step: $result\n")
+    end
+
+    if p.full_output
+        println("Poll step:\n")
+        if result !== Unsuccessful
+            println("\tSkipping Poll step.\n")
+        end
+    end
+
     #If search fails, run poll
     if result == Unsuccessful
         result = Poll(p)
+        if p.full_output
+            println("\tResult of Poll step: $result\n")
+        end
     end
 
     result != Unsuccessful && CacheOrderPush(p)
@@ -261,8 +332,8 @@ end
 
 #Cleanup and reporting
 function Finish(p)
-    p.status.end_time = time()
-    p.status.runtime_total = p.status.end_time - p.status.start_time
+    p.status.runtime_total = time() - p.status.start_time
+    ReportFinal(p)
 end
 
 """
@@ -284,17 +355,21 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
 
+    if p.full_output
+        println("\tPoint evaluation:\n")
+    end
+
     #Iterate over all trial points
-    for point in trial_points
+    for i=1:length(trial_points)
+        point = trial_points[i]
+
         feasibility = ConstraintEvaluation(p.constraints, point)
 
         # Point violates h_max on at least one constraint collection
         feasibility == StrongInfeasible && continue
 
         #Point is feasible for relaxed constraints, so evaluate it
-        t1 = time()
-        cost = function_evaluation(p, point)
-        p.status.blackbox_time_total += time() - t1
+        p.status.blackbox_time_total += @elapsed (cost, is_from_cache) = function_evaluation(p, point)
 
         #To determine if a point is dominating or improving the combined h_max is needed
         h = GetViolationSum(p.constraints, point)
@@ -315,6 +390,8 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
             h_min = h
             updated = true
         end
+
+        p.full_output && OutputPointEvaluation(i, point, cost, h, is_from_cache)
 
         #break if using opportunistic iteration
         updated && p.config.opportunistic && break
@@ -393,7 +470,7 @@ function function_evaluation(p::DSProblem{T},
 end
 
 """
-	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::T where T
+	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::(T, Bool) where T
 
 Evaluate a single trial point with the objective function of `p`.
 
@@ -401,10 +478,21 @@ By default calls the function with the trial point and returns the result. Overr
 provide custom evaluation behaviour.
 """
 function function_evaluation(p::DSProblem{T},
-                             trial_point::Vector{T})::T where T
-    CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
+                             trial_point::Vector{T})::Tuple{T, Bool} where T
+    if CacheQuery(p, trial_point)
+        p.status.cache_hits += 1
+        return (CacheGet(p, trial_point), true)
+    end
     cost = p.objective(trial_point)
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
-	return cost
+	return (cost, false)
+end
+
+function _check_initial_point(p::DSProblem{T}) where T
+    for i=1:p.N
+        if p.granularity[i] > 0 && (p.user_initial_point[i] / p.granularity[i]) % 1 != 0
+            error("Initial value of variable with index $i is not an integer multiple of its granularity.")
+        end
+    end
 end

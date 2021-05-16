@@ -2,6 +2,10 @@ export ReportConfig, ReportStatus, ReportProblem
 #TODO add ability to save report every X iterations
 #TODO read report file to warm-start solver
 
+const tab1 = "\t"
+const tab2 = "\t\t"
+const tab3 = "\t\t\t"
+
 struct ReportSection
     title::String
     entries::Vector{Union{Pair{String,Any},Nothing}}
@@ -96,6 +100,7 @@ function report_status(p::DSProblem)::ReportSection
     entries = []
     push!(entries, "Function Evaluations" => p.status.function_evaluations)
     push!(entries, "Iterations" => p.status.iteration)
+    push!(entries, "Cache hits" => p.status.cache_hits)
     push!(entries, "Optimization Status" => p.status.optimization_status)
     push!(entries, "Optimization Status String" => p.status.optimization_status_string)
 
@@ -174,3 +179,162 @@ function handle:   $(c.result_aggregate)
     print(collection_report)
 end
 
+ReportFinal(p::DSProblem) = print(report_final(p))
+
+function report_final(p::DSProblem)::ReportSection
+    entries = []
+    push!(entries, "Feasible Solution" => p.x)
+    push!(entries, "Feasible Cost" => p.x_cost)
+    push!(entries, "Infeasible Solution" => p.i)
+    push!(entries, "Infeasible Cost" => p.i_cost)
+
+    push!(entries, nothing)
+
+    push!(entries, "Iterations" => p.status.iteration)
+    push!(entries, "Function Evaluations" => p.status.function_evaluations)
+    push!(entries, "Cache hits" => p.status.cache_hits)
+    push!(entries, "Optimization Status" => p.status.optimization_status_string)
+
+    push!(entries, nothing)
+
+    push!(entries, "Runtime" => p.status.runtime_total)
+    push!(entries, "Search Time" => p.status.search_time_total)
+    push!(entries, "Poll Time" => p.status.poll_time_total)
+    push!(entries, "Blackbox Evaluation Time" => p.status.blackbox_time_total)
+
+    return ReportSection("MADS Run Summary", entries)
+end
+
+function OutputIterationDetails(p::DSProblem)
+    str = ""
+
+    title = "Iteration #$(p.status.iteration):"
+    border = join(["=" for _ in 1:length(title)])
+
+    str *= border * "\n"
+    str *= title * "\n"
+    str *= border * "\n"
+
+    str *= "\n"
+
+    str *= "Status:" * "\n"
+
+    str *= tab1 * "Number of blackbox evaluations: $(p.status.function_evaluations)" * "\n"
+    str *= tab1 * "Number of cache hits: $(p.status.cache_hits)" * "\n"
+
+    str *= "\n"
+
+    str *= PointDetails(p)
+
+    str *= MeshDetails(p)
+
+    print(str)
+end
+
+MeshDetails(p::DSProblem) = MeshDetails(p.config.mesh)
+function MeshDetails(m::Mesh)::String
+    str = ""
+    str *= tab1 * "Mesh:" * "\n"
+    str *= tab2 * "Mesh size: $(m.δ)" * "\n"
+    str *= tab2 * "Poll size: $(m.Δ)" * "\n"
+    str *= tab2 * "Mesh index: $(m.l)" * "\n"
+    str *= "\n"
+    return str
+end
+
+function PointDetails(p::DSProblem)::String
+    str = ""
+
+    str *= tab1 * "Feasible point: " * "\n"
+    str *= tab2 * "x = $(p.x)" * "\n"
+    str *= tab2 * "f(x) = $(p.x_cost)" * "\n"
+
+    str *= "\n"
+
+    str *= tab1 * "Infeasible point: " * "\n"
+    str *= tab2 * "i = $(p.i)" * "\n"
+    str *= tab2 * "f(i) = $(p.i_cost)" * "\n"
+
+    str *= "\n"
+
+    return str
+end
+
+function InitialPointEvaluationOutput(p::DSProblem, feasibility::ConstraintOutcome)
+    str = ""
+
+    title = "Evaluating initial point:"
+    border = join(["=" for _ in 1:length(title)])
+
+    str *= border * "\n"
+    str *= title * "\n"
+    str *= border * "\n"
+
+    str *= "\n"
+
+    if feasibility == Feasible
+        str *= tab1 * "x₀ = $(p.x)" * "\n"
+        str *= tab1 * "f(x₀) = $(p.x_cost)" * "\n"
+        str *= tab1 * "Feasibility: Feasible" * "\n"
+    else
+        str *= tab1 * "x₀ = $(p.i)" * "\n"
+        str *= tab1 * "f(x₀) = $(p.i_cost)" * "\n"
+        str *= tab1 * "Feasibility: Weak Infeasible" * "\n"
+    end
+    
+    str *= "\n"
+
+    print(str)
+end
+
+function OutputSearchStep(p::DSProblem{T}, points::Vector{Vector{T}}) where T
+    str = ""
+
+    if p.config.search isa NullSearch
+        str *= tab1 * "Skipping Search step." * "\n"
+    else
+        str *= tab1 * "Generated search points:" * "\n"
+        for i=1:length(points)
+            str *= tab2 * "Search point $i: $(points[i])" * "\n"
+        end
+    end
+
+    str *= "\n"
+
+    print(str)
+end
+
+function OutputPollStep(points::Vector{Vector{T}}, directions::Matrix{T}) where T
+    str = ""
+
+    str *= tab1 * "Generated directions:" * "\n"
+    for i=1:size(directions,2)
+        str *= tab2 * "Direction $i: $(directions[:,i])" * "\n"
+    end
+
+    str *= "\n"
+
+    str *= tab1 * "Generated poll points:\n" * "\n"
+    for i=1:length(points)
+        str *= tab2 * "Poll point $i: $(points[i])" * "\n"
+    end
+
+    str *= "\n"
+
+    print(str)
+end
+
+function OutputPointEvaluation(i::Int, point::Vector{T}, cost::T, h::T, is_from_cache::Bool) where T
+    str = ""
+
+    str *= tab2 * "Evaluating point $i:" * "\n"
+    str *= tab3 * "x = $point" * "\n"
+    str *= tab3 * "f(x) = $cost" * "\n"
+    str *= tab3 * "h(x) = $h" * "\n"
+    if is_from_cache
+        str *= tab3 * "Point was found in cache." * "\n"
+    end
+    str *= "\n"
+
+    print(str)
+end

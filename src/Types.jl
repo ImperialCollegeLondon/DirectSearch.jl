@@ -38,7 +38,7 @@ abstract type AbstractStoppingCondition end
 
 @enum ProblemSense Min Max
 
-@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit OtherStoppingCondition
+@enum OptimizationStatus Unoptimized MeshPrecisionLimit PollPrecisionLimit IterationLimit FunctionEvaluationLimit RuntimeLimit OtherStoppingCondition
 
 """
     Config(;sense::ProblemSense=Min,
@@ -89,6 +89,7 @@ end
 
 mutable struct Status
     function_evaluations::Int64
+    cache_hits::Int64
     iteration::Int64
 
     optimization_status::OptimizationStatus
@@ -109,6 +110,7 @@ mutable struct Status
 
         s.function_evaluations = 0
         s.iteration = 0
+        s.cache_hits = 0
         s.optimization_status_string = "Unoptimized"
         s.optimization_status = Unoptimized
 
