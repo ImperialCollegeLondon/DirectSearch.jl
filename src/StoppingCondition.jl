@@ -1,4 +1,4 @@
-export AddStoppingCondition
+export AddStoppingCondition, RuntimeStoppingCondition
 
 
 function AddStoppingCondition(p::DSProblem, c::T) where T <: AbstractStoppingCondition
@@ -26,6 +26,10 @@ function setstatus(p, s::T) where T <: AbstractStoppingCondition
         p.status.optimization_status = IterationLimit
     elseif typeof(s) == MeshPrecisionStoppingCondition
         p.status.optimization_status = PrecisionLimit
+    elseif typeof(s) == FunctionEvaluationStoppingCondition
+        p.status.optimization_status = FunctionEvaluationLimit
+    elseif typeof(s) == RuntimeStoppingCondition
+        p.status.optimization_status = RuntimeLimit
     else
         p.status.optimization_status = OtherStoppingCondition
     end
@@ -102,4 +106,81 @@ CheckStoppingCondition(p::DSProblem, ::MeshPrecisionStoppingCondition) = GetMesh
 min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
 min_mesh_size(::DSProblem{T}) where T = eps(T)/2
 
-#==========#
+
+#Function evaluation limit
+mutable struct FunctionEvaluationStoppingCondition <: AbstractStoppingCondition
+    limit::Int64
+end
+
+StoppingConditionStatus(::FunctionEvaluationStoppingCondition) = "Function evaluation limit"
+
+CheckStoppingCondition(p::DSProblem, s::FunctionEvaluationStoppingCondition) = p.status.function_evaluations < s.limit
+
+function init_stoppingcondition(::DSProblem, s::FunctionEvaluationStoppingCondition)
+    if s.limit == -1 
+        error("Please set a maximum number of function evaluations")
+    end
+end
+
+"""
+    SetFunctionEvaluationLimit(p::DSProblem, i::Int)
+
+Set the maximum number of function evaluations to `i`.
+"""
+function SetFunctionEvaluationLimit(p::DSProblem, i::Int)
+    if i < p.status.function_evaluations
+        error("Cannot set function evaluation limit to lower than the number of function evaluations that have run")
+    else
+        function_evaluation_indexes = _get_conditionindexes(p, FunctionEvaluationStoppingCondition)
+        for index in function_evaluation_indexes
+            p.stoppingconditions[index].limit = i
+        end
+    end
+end
+
+"""
+    BumpFunctionEvaluationLimit(p::DSProblem, i::Int)
+
+Increase the function evaluation limit by `i`.
+"""
+function BumpFunctionEvaluationLimit(p::DSProblem, i::Int)
+    function_evaluation_indexes = _get_conditionindexes(p, FunctionEvaluationStoppingCondition)
+    for index in function_evaluation_indexes
+        p.stoppingconditions[index].limit += i
+    end
+end
+
+#===== Optional stopping conditions =====#
+
+#Runtime limit
+mutable struct RuntimeStoppingCondition <: AbstractStoppingCondition
+    limit::Float64
+end
+
+StoppingConditionStatus(::RuntimeStoppingCondition) = "Runtime limit"
+
+CheckStoppingCondition(p::DSProblem, s::RuntimeStoppingCondition) = (time() - p.status.start_time) < s.limit
+
+function init_stoppingcondition(::DSProblem, s::RuntimeStoppingCondition) #TODO: check this
+    if s.limit == -1
+        error("Please set a runtime limit")
+    end
+end
+
+"""
+    SetRuntimeLimit(p::DSProblem, i::Float64)
+
+Set the runtime limit to `i`.
+"""
+function SetRuntimeLimit(p::DSProblem, i::Float64)
+    if i < p.status.runtime_total
+        error("Cannot set runtime limit to lower than the runtime of the previous run")
+    elseif i <= 0
+        error("Runtime limit has to be positive.")
+    else
+        runtime_indexes = _get_conditionindexes(p, RuntimeStoppingCondition)
+        for index in runtime_indexes
+            p.stoppingconditions[index].limit = i
+        end
+    end
+end

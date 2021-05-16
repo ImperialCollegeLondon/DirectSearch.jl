@@ -3,9 +3,7 @@ using LinearAlgebra: norm
 export RandomSearch, NullSearch
 
 function Search(p::DSProblem{T})::IterationOutcome  where T
-    t1 = time()
-    points = GenerateSearchPoints(p, p.config.search)
-    p.status.search_time_total += time() - t1
+    p.status.search_time_total += @elapsed points = GenerateSearchPoints(p, p.config.search)
     return EvaluatePoint!(p, points)
 end
 

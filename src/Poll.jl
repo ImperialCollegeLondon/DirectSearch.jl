@@ -4,9 +4,7 @@
 Generate points and call evaluate on them.
 """
 function Poll(p::DSProblem{T})::IterationOutcome where T
-    t1 = time()
-    points = GeneratePollPoints(p, p.config.mesh)
-    p.status.poll_time_total += time() - t1
+    p.status.poll_time_total += @elapsed points = GeneratePollPoints(p, p.config.mesh)
     return EvaluatePoint!(p, points)
 end
 

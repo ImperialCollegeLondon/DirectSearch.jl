@@ -65,6 +65,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector=zeros(T, N),
                           iteration_limit::Int=1000,
+                          function_evaluation_limit::Int=5000,
                           sense::ProblemSense=Min,
                           kwargs...
                          ) where T
@@ -84,6 +85,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
         p.stoppingconditions = AbstractStoppingCondition[
             IterationStoppingCondition(iteration_limit),
+            FunctionEvaluationStoppingCondition(function_evaluation_limit),
             MeshPrecisionStoppingCondition(),
         ]
 
@@ -261,8 +263,7 @@ end
 
 #Cleanup and reporting
 function Finish(p)
-    p.status.end_time = time()
-    p.status.runtime_total = p.status.end_time - p.status.start_time
+    p.status.runtime_total = time() - p.status.start_time
 end
 
 """
@@ -292,9 +293,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
         feasibility == StrongInfeasible && continue
 
         #Point is feasible for relaxed constraints, so evaluate it
-        t1 = time()
-        cost = function_evaluation(p, point)
-        p.status.blackbox_time_total += time() - t1
+        p.status.blackbox_time_total += @elapsed cost = function_evaluation(p, point)
 
         #To determine if a point is dominating or improving the combined h_max is needed
         h = GetViolationSum(p.constraints, point)

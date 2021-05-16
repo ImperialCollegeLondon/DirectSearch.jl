@@ -38,7 +38,7 @@ abstract type AbstractStoppingCondition end
 
 @enum ProblemSense Min Max
 
-@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit OtherStoppingCondition
+@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit FunctionEvaluationLimit RuntimeLimit OtherStoppingCondition
 
 """
     Config(;sense::ProblemSense=Min,
