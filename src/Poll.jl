@@ -25,6 +25,8 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
         append!(points, [p.i+(p.config.mesh.Δᵐ*p.config.meshscale.*d) for d in eachcol(dirs)])
     end
 
+    p.full_output && OutputPollStep(points, dirs)
+
     return points
 end
 

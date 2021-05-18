@@ -57,6 +57,8 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
     stoppingconditions::Vector{AbstractStoppingCondition}
 
+    full_output::Bool
+
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
     function DSProblem{T}(N::Int;
@@ -67,6 +69,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
                           iteration_limit::Int=1000,
                           function_evaluation_limit::Int=5000,
                           sense::ProblemSense=Min,
+                          full_output::Bool=false,
                           kwargs...
                          ) where T
 
@@ -97,6 +100,8 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         if objective != nothing
             p.objective = objective
         end
+
+        p.full_output = full_output
 
         return p
     end
@@ -188,6 +193,10 @@ function EvaluateInitialPoint(p::DSProblem)
         p.x_cost = p.objective(p.user_initial_point)
         CachePush(p, p.x, p.x_cost)
     end
+
+    p.status.function_evaluations += 1
+
+    p.full_output && InitialPointEvaluationOutput(p, feasibility)
 end
 
 
@@ -231,6 +240,7 @@ function Optimize!(p::DSProblem)
     Setup(p)
 
     while _check_stoppingconditions(p)
+        p.full_output && OutputIterationDetails(p)
         OptimizeLoop(p)
     end
 
@@ -247,10 +257,28 @@ end
 
 #A single iteration of the search->poll->update algorithm loop
 function OptimizeLoop(p)
+    if p.full_output
+        println("Search step:\n")
+    end
     result = Search(p)
+
+    if p.full_output && !(p.config.search isa NullSearch)
+        println("\tResult of Search step: $result\n")
+    end
+
+    if p.full_output
+        println("Poll step:\n")
+        if result !== Unsuccessful
+            println("\tSkipping Poll step.\n")
+        end
+    end
+
     #If search fails, run poll
     if result == Unsuccessful
         result = Poll(p)
+        if p.full_output
+            println("\tResult of Poll step: $result\n")
+        end
     end
 
     result != Unsuccessful && CacheOrderPush(p)
@@ -264,6 +292,7 @@ end
 #Cleanup and reporting
 function Finish(p)
     p.status.runtime_total = time() - p.status.start_time
+    ReportFinal(p)
 end
 
 """
@@ -285,15 +314,21 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
 
+    if p.full_output
+        println("\tPoint evaluation:\n")
+    end
+
     #Iterate over all trial points
-    for point in trial_points
+    for i=1:length(trial_points)
+        point = trial_points[i]
+
         feasibility = ConstraintEvaluation(p.constraints, point)
 
         # Point violates h_max on at least one constraint collection
         feasibility == StrongInfeasible && continue
 
         #Point is feasible for relaxed constraints, so evaluate it
-        p.status.blackbox_time_total += @elapsed cost = function_evaluation(p, point)
+        p.status.blackbox_time_total += @elapsed (cost, is_from_cache) = function_evaluation(p, point)
 
         #To determine if a point is dominating or improving the combined h_max is needed
         h = GetViolationSum(p.constraints, point)
@@ -314,6 +349,8 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
             h_min = h
             updated = true
         end
+
+        p.full_output && OutputPointEvaluation(i, point, cost, h, is_from_cache)
 
         #break if using opportunistic iteration
         updated && p.config.opportunistic && break
@@ -392,7 +429,7 @@ function function_evaluation(p::DSProblem{T},
 end
 
 """
-	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::T where T
+	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::(T, Bool) where T
 
 Evaluate a single trial point with the objective function of `p`.
 
@@ -400,10 +437,13 @@ By default calls the function with the trial point and returns the result. Overr
 provide custom evaluation behaviour.
 """
 function function_evaluation(p::DSProblem{T},
-                             trial_point::Vector{T})::T where T
-    CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
+                             trial_point::Vector{T})::Tuple{T, Bool} where T
+    if CacheQuery(p, trial_point)
+        p.status.cache_hits += 1
+        return (CacheGet(p, trial_point), true)
+    end
     cost = p.objective(trial_point)
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
-	return cost
+	return (cost, false)
 end

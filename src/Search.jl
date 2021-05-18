@@ -4,6 +4,7 @@ export RandomSearch, NullSearch
 
 function Search(p::DSProblem{T})::IterationOutcome  where T
     p.status.search_time_total += @elapsed points = GenerateSearchPoints(p, p.config.search)
+    p.full_output && OutputSearchStep(p, points)
     return EvaluatePoint!(p, points)
 end
 
@@ -64,4 +65,3 @@ function RandomPointsFromCache(N::Int, c::PointCache{T}, dist::T, s::RandomSearc
 
     return mesh_points
 end
-
