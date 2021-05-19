@@ -1,6 +1,30 @@
 @testset "Core" begin
+
+    @testset "DSProblem default type" begin
+        N = 3
+        p = DSProblem(N)
+        @test p.N == N
+        @test typeof(p.config.search) == NullSearch
+        @test typeof(p.config.poll) == LTMADS{Float64}
+        @test p.status.optimization_status == DS.Unoptimized
+        @test p.status.optimization_status_string == "Unoptimized"
+        @test p.sense == DS.Min
+        @test p.config.max_simultanious_evaluations == 1
+        @test typeof(p.config.mesh) == DS.Mesh{Float64}
+
+        @test typeof(p.cache) == DS.PointCache{Float64}
+        @test isempty(p.cache.costs)
+        @test isempty(p.cache.order)
+
+        @test typeof(p.constraints) == DS.Constraints{Float64}
+
+        @test typeof(p.user_params) == Nothing
+        SetUserParameters(p, [0.0])
+        @test typeof(p.user_params) == Vector{Float64}
+    end
+
     T = Float64
-    @testset "DSProblem" begin
+    @testset "DSProblem numeric type" begin
         N = 3
         p = DSProblem{T}(N)
         @test p.N == N
@@ -17,6 +41,33 @@
         @test isempty(p.cache.order)
 
         @test typeof(p.constraints) == DS.Constraints{T}
+
+        @test typeof(p.user_params) == Nothing
+        SetUserParameters(p, [0.0])
+        @test typeof(p.user_params) == Vector{Float64}
+    end
+
+    @testset "DSProblem with parameter type" begin
+        N = 3
+        p = DSProblem{T, Matrix{Float64}}(N)
+        @test p.N == N
+        @test typeof(p.config.search) == NullSearch
+        @test typeof(p.config.poll) == LTMADS{T}
+        @test p.status.optimization_status == DS.Unoptimized
+        @test p.status.optimization_status_string == "Unoptimized"
+        @test p.sense == DS.Min
+        @test p.config.max_simultanious_evaluations == 1
+        @test typeof(p.config.mesh) == DS.Mesh{T}
+
+        @test typeof(p.cache) == DS.PointCache{T}
+        @test isempty(p.cache.costs)
+        @test isempty(p.cache.order)
+
+        @test typeof(p.constraints) == DS.Constraints{T}
+
+        @test typeof(p.user_params) == Nothing
+        SetUserParameters(p, Matrix{Float64}(undef, 1, 1))
+        @test typeof(p.user_params) == Matrix{Float64}
     end
 
     @testset "Mesh" begin
