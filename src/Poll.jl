@@ -19,15 +19,25 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     dirs = GenerateDirections(p)
 
     if !isnothing(p.x)
-        append!(points, [p.x+(p.config.mesh.δ .* d) for d in eachcol(dirs)])
+        append!(points, [SafePointGeneration(p.x, d, p.config.mesh) for d in eachcol(dirs)])
     end
     if !isnothing(p.i)
-        append!(points, [p.i+(p.config.mesh.δ .* d) for d in eachcol(dirs)])
+        append!(points, [SafePointGeneration(p.i, d, p.config.mesh) for d in eachcol(dirs)])
     end
 
     p.full_output && OutputPollStep(points, dirs)
 
     return points
+end
+
+function SafePointGeneration(x::Vector{T}, d::SubArray, m::Mesh{T})::Vector{T} where T
+    result = []
+
+    for i=1:length(x)
+        single_result = x[i] + (d[i] * m.δ[i])
+        push!(result, m.digits[i] !== nothing ? round(single_result, digits=m.digits[i]) : single_result)
+    end
+    return result
 end
 
 function ScaleDirection(p::DSProblem, dir::Vector{T}) where T

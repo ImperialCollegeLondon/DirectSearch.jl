@@ -15,6 +15,7 @@ mutable struct Mesh{T} <: AbstractMesh
     D::Matrix{T}
 
     δ_min::Vector{T}
+    digits::Vector{Union{Int, Nothing}}
 
     l::Int
     δ::Vector{T}
@@ -57,6 +58,7 @@ function MeshSetup!(p::DSProblem, m::Mesh)
     m.is_anisotropic = p.config.poll isa OrthoMADS
 
     m.δ_min = p.granularity
+    m.digits = map(getDecimalPlaces, p.granularity)
     m.only_granular = all(p.granularity .> 0)
 
     init_a_and_b!(p, m)
@@ -239,5 +241,17 @@ function decrease_a_and_b!(m::Mesh, i::Int)
         m.a[i] = 1
     else
         m.a[i] = 2
+    end
+end
+
+function getDecimalPlaces(a::Float64)::Union{Int, Nothing}
+    a == 0 && return nothing
+
+    str_split = split(string(a), ".")
+
+    if length(str_split) == 1 || (length(str_split[2]) == 1 && str_split[2][1] == '0')
+        return 0
+    else
+        return length(str_split[2])
     end
 end
