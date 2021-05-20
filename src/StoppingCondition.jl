@@ -1,4 +1,5 @@
-export AddStoppingCondition, RuntimeStoppingCondition
+export AddStoppingCondition, SetIterationLimit, BumpIterationLimit, SetFunctionEvaluationLimit,
+       BumpFunctionEvaluationLimit, SetMinimumMeshSize, SetMinimumPollSize, RuntimeStoppingCondition
 
 
 function AddStoppingCondition(p::DSProblem, c::T) where T <: AbstractStoppingCondition
@@ -22,13 +23,15 @@ end
 function setstatus(p, s::T) where T <: AbstractStoppingCondition
     p.status.optimization_status_string = StoppingConditionStatus(s)
 
-    if typeof(s) == IterationStoppingCondition
+    if s isa IterationStoppingCondition
         p.status.optimization_status = IterationLimit
-    elseif typeof(s) == MeshPrecisionStoppingCondition
-        p.status.optimization_status = PrecisionLimit
-    elseif typeof(s) == FunctionEvaluationStoppingCondition
+    elseif s isa MeshPrecisionStoppingCondition
+        p.status.optimization_status = MeshPrecisionLimit
+    elseif s isa PollPrecisionStoppingCondition
+        p.status.optimization_status = PollPrecisionLimit
+    elseif s isa FunctionEvaluationStoppingCondition
         p.status.optimization_status = FunctionEvaluationLimit
-    elseif typeof(s) == RuntimeStoppingCondition
+    elseif s isa RuntimeStoppingCondition
         p.status.optimization_status = RuntimeLimit
     else
         p.status.optimization_status = OtherStoppingCondition
@@ -96,15 +99,113 @@ function BumpIterationLimit(p::DSProblem, i::Int)
 end
 
 
-#Precision limit
-struct MeshPrecisionStoppingCondition <: AbstractStoppingCondition end
+#Mesh size precision limit
+mutable struct MeshPrecisionStoppingCondition{T} <: AbstractStoppingCondition
+    cont_min_mesh_size::T
+    min_mesh_sizes::Vector{T}
+
+    function MeshPrecisionStoppingCondition{T}(min_mesh_size::Union{T, Nothing}=nothing) where T
+        c = new()
+
+        if min_mesh_size != nothing
+            c.cont_min_mesh_size = min_mesh_size
+        else
+            c.cont_min_mesh_size = get_min_mesh_size(T)
+        end
+
+        return c
+    end
+end
+
+function init_stoppingcondition(p::DSProblem, s::MeshPrecisionStoppingCondition)
+    s.min_mesh_sizes = map(δ_min -> δ_min > 0 ? δ_min : s.cont_min_mesh_size, p.config.mesh.δ_min)
+end
 
 StoppingConditionStatus(::MeshPrecisionStoppingCondition) = "Mesh Precision limit"
 
-CheckStoppingCondition(p::DSProblem, ::MeshPrecisionStoppingCondition) = GetMeshSize(p) > min_mesh_size(p)
-(GetMeshSize(p::DSProblem{T})::T) where T = p.config.mesh.Δᵐ
-min_mesh_size(::DSProblem{Float64}) = 1.1102230246251565e-16
-min_mesh_size(::DSProblem{T}) where T = eps(T)/2
+function CheckStoppingCondition(p::DSProblem, s::MeshPrecisionStoppingCondition)
+    if p.config.mesh.only_granular
+        p.config.mesh.l > -50
+    else
+        any(GetMeshSizeVector(p) > s.min_mesh_sizes)
+    end
+end
+
+
+(GetMeshSizeVector(p::DSProblem{T})::Vector{T}) where T = p.config.mesh.δ
+
+get_min_mesh_size(::Type{Float64}) = 1.1102230246251565e-16
+get_min_mesh_size(::Type{T}) where T = eps(T)/2
+
+"""
+    SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
+
+Set the minimum poll size for continuous variables.
+"""
+function SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
+    if i <= 0
+        error("Minimum mesh size must be positive.")
+    else
+        mesh_precision_indexes = _get_conditionindexes(p, MeshPrecisionStoppingCondition)
+        for index in mesh_precision_indexes
+            p.stoppingconditions[index].cont_min_mesh_size = i
+        end
+    end
+end
+
+#Poll size precision limit
+mutable struct PollPrecisionStoppingCondition{T} <: AbstractStoppingCondition
+    cont_min_poll_size::T
+    min_poll_sizes::Vector{T}
+
+    function PollPrecisionStoppingCondition{T}(min_poll_size::Union{T, Nothing}=nothing) where T
+        c = new()
+
+        if min_poll_size != nothing
+            c.cont_min_poll_size = min_poll_size
+        else
+            c.cont_min_poll_size = get_min_poll_size(T)
+        end
+
+        return c
+    end
+end
+
+function init_stoppingcondition(p::DSProblem, s::PollPrecisionStoppingCondition)
+    s.min_poll_sizes = map(δ_min -> δ_min > 0 ? δ_min : s.cont_min_poll_size, p.config.mesh.δ_min)
+end
+
+StoppingConditionStatus(::PollPrecisionStoppingCondition) = "Poll Precision limit"
+
+function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition)
+    if p.config.mesh.only_granular
+        p.config.mesh.l > -50
+    else
+        any(GetPollSizeVector(p) > s.min_poll_sizes)
+    end
+end
+
+
+(GetPollSizeVector(p::DSProblem{T})::Vector{T}) where T = p.config.mesh.Δ
+
+get_min_poll_size(::Type{Float64}) = 1.1102230246251565e-16
+get_min_poll_size(::Type{T}) where T = eps(T)/2
+
+"""
+    SetMinimumPollSize(p::DSProblem{T}, i::T) where T
+
+Set the minimum poll size for continuous variables.
+"""
+function SetMinimumPollSize(p::DSProblem{T}, i::T) where T
+    if i <= 0
+        error("Minimum poll size must be positive.")
+    else
+        poll_precision_indexes = _get_conditionindexes(p, PollPrecisionStoppingCondition)
+        for index in poll_precision_indexes
+            p.stoppingconditions[index].cont_min_poll_size = i
+        end
+    end
+end
 
 
 #Function evaluation limit
@@ -161,9 +262,9 @@ StoppingConditionStatus(::RuntimeStoppingCondition) = "Runtime limit"
 
 CheckStoppingCondition(p::DSProblem, s::RuntimeStoppingCondition) = (time() - p.status.start_time) < s.limit
 
-function init_stoppingcondition(::DSProblem, s::RuntimeStoppingCondition) #TODO: check this
-    if s.limit == -1
-        error("Please set a runtime limit")
+function init_stoppingcondition(::DSProblem, s::RuntimeStoppingCondition)
+    if s.limit <= 0
+        error("Runtime limit must be positive.")
     end
 end
 

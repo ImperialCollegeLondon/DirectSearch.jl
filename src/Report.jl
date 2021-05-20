@@ -235,8 +235,8 @@ MeshDetails(p::DSProblem) = MeshDetails(p.config.mesh)
 function MeshDetails(m::Mesh)::String
     str = ""
     str *= tab1 * "Mesh:" * "\n"
-    str *= tab2 * "Mesh size: $(m.Δᵐ)" * "\n"
-    str *= tab2 * "Poll size: $(m.Δᵖ)" * "\n"
+    str *= tab2 * "Mesh size: $(m.δ)" * "\n"
+    str *= tab2 * "Poll size: $(m.Δ)" * "\n"
     str *= tab2 * "Mesh index: $(m.l)" * "\n"
     str *= "\n"
     return str

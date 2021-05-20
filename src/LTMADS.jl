@@ -52,9 +52,9 @@ function form_basis_matrix(N::Int, B::Matrix{T}, max_basis::Bool) where T
 end
 
 function LT_basis_generation(m::Mesh, N::Int, DG::LTMADS{T}) where T
-    b, i = b_l_generation(DG.b, DG.i, m.l, N)
+    b, i = b_l_generation(DG.b, DG.i, abs(m.l), N)
 
-    L = L_generation(N, m.l)
+    L = L_generation(N, abs(m.l))
 
     B = B_generation(N, i, b, L)
 

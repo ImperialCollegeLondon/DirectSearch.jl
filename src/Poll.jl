@@ -19,10 +19,10 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     dirs = GenerateDirections(p)
 
     if !isnothing(p.x)
-        append!(points, [p.x+(p.config.mesh.Δᵐ*p.config.meshscale.*d) for d in eachcol(dirs)])
+        append!(points, [p.x+(p.config.mesh.δ .* d) for d in eachcol(dirs)])
     end
     if !isnothing(p.i)
-        append!(points, [p.i+(p.config.mesh.Δᵐ*p.config.meshscale.*d) for d in eachcol(dirs)])
+        append!(points, [p.i+(p.config.mesh.δ .* d) for d in eachcol(dirs)])
     end
 
     p.full_output && OutputPollStep(points, dirs)
@@ -30,6 +30,21 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     return points
 end
 
-GenerateDirections(p::DSProblem) = GenerateDirections(p, p.config.poll)
+function ScaleDirection(p::DSProblem, dir::Vector{T}) where T
+    infNorm = maximum(abs.(dir))
+
+    if infNorm == 0
+        error("Unexpected error. Poll algorithm generated a direction equal to zero.")
+    end
+
+    d_scaled = dir ./ infNorm
+
+    return round.(d_scaled .* p.config.mesh.ρ)
+end
+
+function GenerateDirections(p::DSProblem)
+    directions = GenerateDirections(p, p.config.poll)
+    return mapslices(dir -> ScaleDirection(p, dir), directions, dims = 1)
+end
 
 Name(::AbstractPoll) = "Unknown poll type"
