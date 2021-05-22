@@ -247,7 +247,15 @@ end
 For point `x` and constraint collection `i` push the violation function result
 `h` to the cache.
 """
-function ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
+function ConstraintCachePush(p::AbstractProblem, x::Vector{T}, i::Int, h::T) where T
+    if p.config.max_simultanious_evaluations > 1
+        lock(() -> constraint_cache_push(p.constraints, x, i, h), p.config.parallel_lock)
+    else
+        constraint_cache_push(p.constraints, x, i, h)
+    end
+end
+
+function constraint_cache_push(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
     if !haskey(c.cache.hmax_map, x)
         c.cache.hmax_map[x] = zeros(T, c.count)
     end
@@ -282,14 +290,14 @@ one progressive barrier constraint had a violation greater than h_max
 
 The second returned value is the sum of h_max values evaluated during the constraint checks.
 """
-function ConstraintEvaluation(constraints::Constraints{T}, p::Vector{T})::ConstraintOutcome where T
+function ConstraintEvaluation(p::AbstractProblem, point::Vector{T})::ConstraintOutcome where T
     # Initially define result as feasible
     eval_result = Feasible
-    for (i,collection) in enumerate(constraints.collections)
+    for (i,collection) in enumerate(p.constraints.collections)
         collection.ignore && continue
 
-        result = ConstraintCollectionEvaluation(collection, p)
-        ConstraintCachePush(constraints, p, i, collection.violation)
+        result = ConstraintCollectionEvaluation(collection, point)
+        ConstraintCachePush(p, point, i, collection.violation)
 
         if result == WeakInfeasible
             eval_result = WeakInfeasible

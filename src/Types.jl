@@ -60,8 +60,9 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
     mesh::MT
     meshscale::Vector{FT}
 
-    num_procs::Int
+    num_threads::Int
     max_simultanious_evaluations::Int
+    parallel_lock::Threads.AbstractLock
     opportunistic::Bool
 
     function Config{FT}(N::Int,
@@ -79,7 +80,7 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
         c.mesh = mesh
         c.meshscale = ones(N)
 
-        c.num_procs = nworkers()
+        c.num_threads = Threads.nthreads()
         c.max_simultanious_evaluations = 1
         c.opportunistic = opportunistic
 
