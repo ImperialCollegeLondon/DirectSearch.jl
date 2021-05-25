@@ -18,11 +18,21 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     points = Vector{T}[]
     dirs = GenerateDirections(p)
 
+    # p.directions = dirs
+
     if !isnothing(p.x)
-        append!(points, [SafePointGeneration(p.x, d, p.config.mesh) for d in eachcol(dirs)])
+        for i=1:size(dirs,2)
+            d = dirs[:,i]
+            push!(points, SafePointGeneration(p.x, d, p.config.mesh))
+            push!(p.status.directions, d)
+        end
     end
     if !isnothing(p.i)
-        append!(points, [SafePointGeneration(p.i, d, p.config.mesh) for d in eachcol(dirs)])
+        for i=1:size(dirs,2)
+            d = dirs[:,i]
+            push!(points, SafePointGeneration(p.i, d, p.config.mesh))
+            push!(p.status.directions, d)
+        end
     end
 
     p.full_output && OutputPollStep(points, dirs)
@@ -30,7 +40,7 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     return points
 end
 
-function SafePointGeneration(x::Vector{T}, d::SubArray, m::Mesh{T})::Vector{T} where T
+function SafePointGeneration(x::Vector{T}, d::Vector{T}, m::Mesh{T})::Vector{T} where T
     result = []
 
     for i=1:length(x)

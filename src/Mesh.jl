@@ -29,6 +29,7 @@ mutable struct Mesh{T} <: AbstractMesh
     b⁰::Vector{Int}
 
     is_anisotropic::Bool
+    aₜ::T
     only_granular::Bool
 
     # Override constructor for different default meshes for
@@ -38,6 +39,8 @@ mutable struct Mesh{T} <: AbstractMesh
         mesh = new()
 
         mesh.N = N
+
+        mesh.aₜ = 0.1
 
         mesh.l = 0
         mesh.a⁰ = Vector{Int}(undef, N)
@@ -73,7 +76,7 @@ end
 Implements update rule from Audet & Dennis 2019 adapted for progressive
 barrier constraints with Audet & Dennis 2009 expression 2.4.
 """
-function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
+function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome, dir::Union{Vector,Nothing})
     if result == Unsuccessful
         for i=1:m.N
             decrease_a_and_b!(m, i)
@@ -81,7 +84,7 @@ function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
         m.l -= 1
     elseif result == Dominating
         for i=1:m.N
-            increase_a_and_b!(m, i)
+            increase_a_and_b!(m, i, dir)
         end
         m.l += 1
     end
@@ -218,8 +221,8 @@ function get_poll_size_estimate(x⁰::T, lower_bound::Union{T,Nothing}, upper_bo
     end
 end
 
-function increase_a_and_b!(m::Mesh, i::Int)
-    if !m.is_anisotropic || m.δ_min[i] > 0 || (m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
+function increase_a_and_b!(m::Mesh, i::Int, dir::Union{Vector,Nothing})
+    if dir === nothing || !m.is_anisotropic || (abs(dir[i])/m.ρ[i] > m.aₜ) || m.δ_min[i] > 0 || (m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
         if m.a[i] === 1
             m.a[i] = 2
         elseif m.a[i] === 2

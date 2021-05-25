@@ -87,10 +87,12 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
     end
 end
 
-mutable struct Status
+mutable struct Status{T}
     function_evaluations::Int64
     cache_hits::Int64
     iteration::Int64
+    directions::Vector{Vector{T}}
+    success_direction::Union{Vector{T},Nothing}
 
     optimization_status::OptimizationStatus
     optimization_status_string::String
@@ -105,12 +107,14 @@ mutable struct Status
     start_time::Float64
     end_time::Float64
 
-    function Status()
+    function Status{T}() where T
         s = new()
 
         s.function_evaluations = 0
         s.iteration = 0
         s.cache_hits = 0
+        s.directions = Vector{Vector{T}}()
+        s.success_direction = nothing
         s.optimization_status_string = "Unoptimized"
         s.optimization_status = Unoptimized
 

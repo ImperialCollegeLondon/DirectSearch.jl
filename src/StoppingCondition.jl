@@ -127,7 +127,7 @@ function CheckStoppingCondition(p::DSProblem, s::MeshPrecisionStoppingCondition)
     if p.config.mesh.only_granular
         p.config.mesh.l > -50
     else
-        any(GetMeshSizeVector(p) > s.min_mesh_sizes)
+        any(GetMeshSizeVector(p) .> s.min_mesh_sizes)
     end
 end
 
@@ -181,7 +181,7 @@ function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition)
     if p.config.mesh.only_granular
         p.config.mesh.l > -50
     else
-        any(GetPollSizeVector(p) > s.min_poll_sizes)
+        any(GetPollSizeVector(p) .> s.min_poll_sizes)
     end
 end
 
