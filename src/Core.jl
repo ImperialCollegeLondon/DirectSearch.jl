@@ -52,7 +52,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
     cache::CT
 
     #= Runtime data =#
-    status::Status
+    status::Status{T}
 
     #= Solver Config =#
     config::Config{T, MT, ST, PT}
@@ -90,7 +90,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
         p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
 
-        p.status = Status()
+        p.status = Status{T}()
         p.cache = PointCache{T}()
         p.constraints = Constraints{T}()
 
@@ -117,7 +117,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 end
 
 MeshUpdate!(p::DSProblem, result::IterationOutcome) =
-    MeshUpdate!(p.config.mesh, p.config.poll, result)
+    MeshUpdate!(p.config.mesh, p.config.poll, result, p.status.success_direction)
 
 """
     SetMaxEvals(p::DSProblem, m::Int)
@@ -362,6 +362,7 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
     feasible_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
     infeasible_point = isnothing(p.i) ? FT(Inf) * ones(p.N) : p.i
     infeasible_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
+    successful_direction = nothing
 
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
@@ -371,8 +372,7 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
     end
 
     #Iterate over all trial points
-    for (i, point) in enumerate(trial_points)
-        point = trial_points[i]
+    for (i, point)=enumerate(trial_points)
 
         feasibility = ConstraintEvaluation(p, point)
 
@@ -391,6 +391,7 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
         if feasibility == Feasible && cost < feasible_cost
             feasible_point = point
             feasible_cost = cost
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             updated = true
         elseif feasibility == WeakInfeasible && h < h_min
             # Conditions met for an improving point (worse cost, but closer to being feasible) or
@@ -399,6 +400,7 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
             infeasible_point = point
             infeasible_cost = cost
             h_min = h
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             updated = true
         end
 
@@ -412,6 +414,8 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
 
     incum_i_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
     incum_x_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
+
+    p.status.directions = nothing
 
 
     # Dominates if there is a feasible improvement, or an infeasible point with
@@ -435,6 +439,8 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
         p.i_cost = infeasible_cost
     end
 
+    p.status.success_direction = successful_direction
+
     UpdateConstraints(p.constraints, h_min, result, p.x, p.i)
 
     return result
@@ -449,6 +455,8 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
     feasible_cost = isnothing(p.x_cost) ? Threads.Atomic{FT}(FT(Inf)) : Threads.Atomic{FT}(p.x_cost)
     infeasible_point = isnothing(p.i) ? FT(Inf) * ones(p.N) : p.i
     infeasible_cost = isnothing(p.i_cost) ? Threads.Atomic{FT}(FT(Inf)) : Threads.Atomic{FT}(p.i_cost)
+    successful_direction = nothing
+
 
     #The current minimum hmax value for all collections
     h_min = GetOldHmaxSum(p.constraints)
@@ -476,6 +484,7 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
         if feasibility == Feasible && cost < feasible_cost[]
             feasible_point = point
             Threads.atomic_xchg!(feasible_cost, cost)
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             # updated = true
             Threads.atomic_xchg!(updated, true)
         elseif feasibility == WeakInfeasible && h < h_min
@@ -484,6 +493,7 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
             # Only record if it offers an improved constraint violation
             infeasible_point = point
             Threads.atomic_xchg!(infeasible_cost, cost)
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             h_min = h
             Threads.atomic_xchg!(updated, true)
         end
@@ -495,6 +505,8 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
 
     incum_i_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
     incum_x_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
+
+    p.status.directions = nothing
 
 
     # Dominates if there is a feasible improvement, or an infeasible point with
@@ -517,6 +529,8 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
         p.i = infeasible_point
         p.i_cost = infeasible_cost[]
     end
+
+    p.status.success_direction = successful_direction
 
     UpdateConstraints(p.constraints, h_min, result, p.x, p.i)
 
