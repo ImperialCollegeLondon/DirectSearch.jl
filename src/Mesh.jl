@@ -223,7 +223,7 @@ function get_poll_size_estimate(x⁰::T, lower_bound::Union{T,Nothing}, upper_bo
 end
 
 function increase_a_and_b!(m::Mesh, i::Int, dir::Union{Vector,Nothing})
-    if dir === nothing || !m.is_anisotropic || (abs(dir[i])/m.ρ[i] > m.aₜ) || m.δ_min[i] > 0 || (m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
+    if dir === nothing || !m.is_anisotropic || (abs(dir[i])/m.ρ[i] > m.aₜ) || (m.δ_min[i] == 0  && m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
         if m.a[i] === 1
             m.a[i] = 2
         elseif m.a[i] === 2
