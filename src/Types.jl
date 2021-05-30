@@ -91,7 +91,7 @@ mutable struct Status{T}
     function_evaluations::Int64
     cache_hits::Int64
     iteration::Int64
-    directions::Vector{Vector{T}}
+    directions::Union{Vector{Vector{T}}, Nothing}
     success_direction::Union{Vector{T},Nothing}
 
     optimization_status::OptimizationStatus
@@ -113,7 +113,7 @@ mutable struct Status{T}
         s.function_evaluations = 0
         s.iteration = 0
         s.cache_hits = 0
-        s.directions = Vector{Vector{T}}()
+        s.directions = nothing
         s.success_direction = nothing
         s.optimization_status_string = "Unoptimized"
         s.optimization_status = Unoptimized

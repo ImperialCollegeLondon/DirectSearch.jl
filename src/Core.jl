@@ -383,7 +383,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
         if feasibility == Feasible && cost < feasible_cost
             feasible_point = point
             feasible_cost = cost
-            successful_direction = p.status.directions[i]
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             updated = true
         elseif feasibility == WeakInfeasible && h < h_min
             # Conditions met for an improving point (worse cost, but closer to being feasible) or
@@ -392,7 +392,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
             infeasible_point = point
             infeasible_cost = cost
             h_min = h
-            successful_direction = p.status.directions[i]
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
             updated = true
         end
 
@@ -407,7 +407,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     incum_i_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
     incum_x_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
 
-    p.status.directions = []
+    p.status.directions = nothing
 
 
     # Dominates if there is a feasible improvement, or an infeasible point with

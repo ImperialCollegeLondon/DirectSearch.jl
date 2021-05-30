@@ -140,7 +140,7 @@ get_min_mesh_size(::Type{T}) where T = eps(T)/2
 """
     SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
 
-Set the minimum poll size for continuous variables.
+Set the minimum mesh size for continuous variables.
 """
 function SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
     if i <= 0
