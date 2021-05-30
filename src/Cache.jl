@@ -136,6 +136,12 @@ function CacheFilter(c::PointCache{T}, points::Vector{Vector{T}}
     return filter(qt, points),filter(qf, points)
 end
 
+"""
+    CacheSaveJSON(p::AbstractProblem{T}, filename::String) where T
+
+Save the costs from the cache to JSON file with the name `filename`. Note that 
+the filename should be without a file extension.
+"""
 CacheSaveJSON(p::AbstractProblem{T}, filename::String) where T = CacheSaveJSON(filename, p.cache)
 function CacheSaveJSON(filename::String, c::PointCache{T}) where T
     open("$filename.json", "w") do file
@@ -143,6 +149,12 @@ function CacheSaveJSON(filename::String, c::PointCache{T}) where T
     end
 end
 
+"""
+    CacheLoadJSON(p::AbstractProblem{T}, path::String) where T
+
+Load the costs from the provided JSON file to the cache. `path` can be a relative or absolute path
+and must contain the '.json' extension.
+"""
 CacheLoadJSON(p::AbstractProblem{T}, path::String) where T = CacheLoadJSON(path, p.cache, p.N)
 function CacheLoadJSON(path::String, c::PointCache{T}, dim::Int) where T
     if isfile(path)
@@ -168,18 +180,30 @@ function CacheLoadJSON(path::String, c::PointCache{T}, dim::Int) where T
     end
 end
 
-CacheSaveJLD2(p::AbstractProblem{T}, filename::String) where T = CacheSaveJLD2(filename, p.cache)
-function CacheSaveJLD2(filename::String, c::PointCache{T}) where T
-    jldopen("$filename.jld2", "w") do file
-        file["cache_costs"] = c.costs
+"""
+    CacheSaveJLD2(p::AbstractProblem{T}, filename::String, dataset::String="cache_costs") where T
+
+Save the costs from the cache to a JLD2 file with the name `filename` and to the dataset `dataset`.
+The default dataset is named 'cache_costs'. It is possible to write to multiple datasets in one file,
+however, datasets cannot be overwritten.
+"""
+function CacheSaveJLD2(p::AbstractProblem{T}, filename::String, dataset::String="cache_costs") where T
+    jldopen("$filename.jld2", "a+") do file
+        file[dataset] = p.cache.costs
     end
 end
 
-CacheLoadJLD2(p::AbstractProblem{T}, path::String) where T = CacheLoadJLD2(path, p.cache, p.N)
-function CacheLoadJLD2(path::String, c::PointCache{T}, dim::Int) where T
+"""
+    CacheLoadJLD2(p::AbstractProblem{T}, path::String, dataset::String="cache_costs") where T
+
+Load the costs from the provided JLD2 file and dataset to the cache. `path` can be a relative or absolute path
+and must contain the '.jld2' extension. By default, it loads from the dataset named 'cache_costs'.
+"""
+CacheLoadJLD2(p::AbstractProblem{T}, path::String, dataset::String="cache_costs") where T = CacheLoadJLD2(path, p.cache, p.N, dataset)
+function CacheLoadJLD2(path::String, c::PointCache{T}, dim::Int, dataset::String="cache_costs") where T
     if isfile(path)
         parsed_costs = jldopen("$path", "r") do file
-            file["cache_costs"]
+            file[dataset]
         end
 
         key_dim = length(first(keys(parsed_costs)))
