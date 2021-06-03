@@ -470,7 +470,7 @@ function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT
         p.status.blackbox_time_total += @elapsed (cost, is_from_cache) = function_evaluation_parallel(p, point)
 
         #To determine if a point is dominating or improving the combined h_max is needed
-        h = GetViolationSum(p.constraints, point)
+        h = GetViolationSumParallel(p, point)
 
         # Conditions met for a dominant point
         if feasibility == Feasible && cost < feasible_cost[]
