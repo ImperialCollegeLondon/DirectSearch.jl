@@ -11,9 +11,6 @@ abstract type AbstractMesh end
 mutable struct Mesh{T} <: AbstractMesh
     N::Int
 
-    G::Matrix{T}
-    D::Matrix{T}
-
     δ_min::Vector{T}
     digits::Vector{Union{Int, Nothing}}
 
@@ -29,6 +26,7 @@ mutable struct Mesh{T} <: AbstractMesh
     b⁰::Vector{Int}
 
     is_anisotropic::Bool
+    aₜ::T
     only_granular::Bool
 
     # Override constructor for different default meshes for
@@ -39,6 +37,8 @@ mutable struct Mesh{T} <: AbstractMesh
 
         mesh.N = N
 
+        mesh.aₜ = 0.1
+
         mesh.l = 0
         mesh.a⁰ = Vector{Int}(undef, N)
         mesh.b⁰ = Vector{Int}(undef, N)
@@ -46,19 +46,21 @@ mutable struct Mesh{T} <: AbstractMesh
         mesh.b = Vector{Int}(undef, N)
         mesh.δ = Vector{T}(undef, N)
         mesh.Δ = Vector{T}(undef, N)
-
-        mesh.G = Matrix(I,N,N)
-        mesh.D = hcat(Matrix(I,N,N),-Matrix(I,N,N))
         return mesh
     end
 end
 
+"""
+    MeshSetup!(p::DSProblem)
+
+Sets up the Mesh with the parameters defined for problem.
+"""
 MeshSetup!(p::DSProblem) = MeshSetup!(p, p.config.mesh)
 function MeshSetup!(p::DSProblem, m::Mesh)
     m.is_anisotropic = p.config.poll isa OrthoMADS
 
     m.δ_min = p.granularity
-    m.digits = map(getDecimalPlaces, p.granularity)
+    m.digits = map(get_decimal_places, p.granularity)
     m.only_granular = all(p.granularity .> 0)
 
     init_a_and_b!(p, m)
@@ -68,25 +70,27 @@ function MeshSetup!(p::DSProblem, m::Mesh)
 end
 
 """
-    MeshUpdate!(mesh::Mesh, improvement_found::Bool)
+    MeshUpdate!(mesh::Mesh, ::AbstractPoll, result::IterationOutcome, dir::Union{Vector,Nothing})
 
 Implements update rule from Audet & Dennis 2019 adapted for progressive
 barrier constraints with Audet & Dennis 2009 expression 2.4.
+
+`dir` is the direction of success of the iteration, equal to `nothing`, if there is no.
 """
-function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome)
+function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome, dir::Union{Vector,Nothing})
     if result == Unsuccessful
         for i=1:m.N
             decrease_a_and_b!(m, i)
         end
         m.l -= 1
+        SetMeshParameters!(m)
     elseif result == Dominating
         for i=1:m.N
-            increase_a_and_b!(m, i)
+            increase_a_and_b!(m, i, dir)
         end
         m.l += 1
+        SetMeshParameters!(m)
     end
-
-    SetMeshParameters!(m)
 end
 
 """
@@ -218,8 +222,8 @@ function get_poll_size_estimate(x⁰::T, lower_bound::Union{T,Nothing}, upper_bo
     end
 end
 
-function increase_a_and_b!(m::Mesh, i::Int)
-    if !m.is_anisotropic || m.δ_min[i] > 0 || (m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
+function increase_a_and_b!(m::Mesh, i::Int, dir::Union{Vector,Nothing})
+    if dir === nothing || !m.is_anisotropic || (abs(dir[i])/m.ρ[i] > m.aₜ) || (m.δ_min[i] == 0  && m.δ[i] < m.δ⁰[i] && m.ρ[i] > m.ρ_min^2)
         if m.a[i] === 1
             m.a[i] = 2
         elseif m.a[i] === 2
@@ -244,10 +248,10 @@ function decrease_a_and_b!(m::Mesh, i::Int)
     end
 end
 
-function getDecimalPlaces(a::Float64)::Union{Int, Nothing}
-    a == 0 && return nothing
+function get_decimal_places(granularity)::Union{Int, Nothing}
+    granularity == 0 && return nothing
 
-    str_split = split(string(a), ".")
+    str_split = split(string(granularity), ".")
 
     if length(str_split) == 1 || (length(str_split[2]) == 1 && str_split[2][1] == '0')
         return 0

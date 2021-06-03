@@ -127,7 +127,7 @@ function CheckStoppingCondition(p::DSProblem, s::MeshPrecisionStoppingCondition)
     if p.config.mesh.only_granular
         p.config.mesh.l > -50
     else
-        any(GetMeshSizeVector(p) > s.min_mesh_sizes)
+        any(GetMeshSizeVector(p) .> s.min_mesh_sizes)
     end
 end
 
@@ -140,7 +140,7 @@ get_min_mesh_size(::Type{T}) where T = eps(T)/2
 """
     SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
 
-Set the minimum poll size for continuous variables.
+Set the minimum mesh size for continuous variables.
 """
 function SetMinimumMeshSize(p::DSProblem{T}, i::T) where T
     if i <= 0
@@ -181,7 +181,7 @@ function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition)
     if p.config.mesh.only_granular
         p.config.mesh.l > -50
     else
-        any(GetPollSizeVector(p) > s.min_poll_sizes)
+        any(GetPollSizeVector(p) .> s.min_poll_sizes)
     end
 end
 
