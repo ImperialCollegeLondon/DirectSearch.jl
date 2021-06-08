@@ -167,14 +167,14 @@ function init_a_and_b!(p::DSProblem, m::Mesh)
         b⁰ = floor(Int, log10(α_scaled))
 
         # b cannot has to be nonnegative for granular indexes
-        # if b⁰ < 0 && m.δ_min[i] > 0
-        #     b⁰ = 0
-        # end
-
-        # the NOMAD way
-        if b⁰ < 0
+        if b⁰ < 0 && m.δ_min[i] > 0
             b⁰ = 0
         end
+
+        # the NOMAD way
+        # if b⁰ < 0
+        #     b⁰ = 0
+        # end
 
         a⁰ = α_scaled / (10.0^b⁰)
 
