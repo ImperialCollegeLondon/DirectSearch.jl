@@ -3,7 +3,8 @@ using Distributed
 using SharedArrays
 
 export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetMaxEvals,
-       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!
+       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!, SetGranularity,
+       SetGranularities
 
 
 """
@@ -48,9 +49,6 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
     i::Union{Vector{T},Nothing}
     #Infeasible incumbent point evaluated cost
     i_cost::Union{T,Nothing}
-
-    # directions::Vector{Vector{T}}
-    # success_direction::Union{Vector{T},Nothing}
 
     cache::CT
 
@@ -197,7 +195,7 @@ Call [`SetGranularity`](@ref) for each variable. The vector `g` should contain t
 for each variable.
 """
 function SetGranularities(p::DSProblem{T}, g::Vector{T}) where T
-    size(l, 1) == p.N || error("Granularity vector dimensions don't match problem definition")
+    size(g, 1) == p.N || error("Granularity vector dimensions don't match problem definition")
 
     for i=1:p.N
         SetGranularity(p, i, g[i])
@@ -224,11 +222,11 @@ function EvaluateInitialPoint(p::DSProblem)
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
         p.i = p.user_initial_point
-        p.i_cost = p.objective(p.user_initial_point)
+        p.i_cost = round(p.objective(p.user_initial_point), digits=p.config.cost_digits)
         CachePush(p, p.i, p.i_cost)
     elseif feasibility == Feasible
         p.x = p.user_initial_point
-        p.x_cost = p.objective(p.user_initial_point)
+        p.x_cost = round(p.objective(p.user_initial_point), digits=p.config.cost_digits)
         CachePush(p, p.x, p.x_cost)
     end
 
@@ -336,7 +334,7 @@ end
 #Cleanup and reporting
 function Finish(p)
     p.status.runtime_total = time() - p.status.start_time
-    ReportFinal(p)
+    # ReportFinal(p)
 end
 
 """
@@ -492,7 +490,7 @@ function function_evaluation(p::DSProblem{T},
         p.status.cache_hits += 1
         return (CacheGet(p, trial_point), true)
     end
-    cost = p.objective(trial_point)
+    cost = round(p.objective(trial_point), digits=p.config.cost_digits)
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
 	return (cost, false)

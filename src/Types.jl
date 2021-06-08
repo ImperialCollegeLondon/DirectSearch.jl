@@ -58,17 +58,19 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
     search::ST
 
     mesh::MT
-    meshscale::Vector{FT}
 
     num_procs::Int
     max_simultanious_evaluations::Int
     opportunistic::Bool
+
+    cost_digits::Int
 
     function Config{FT}(N::Int,
                         poll::AbstractPoll,
                         search::AbstractSearch,
                         mesh::AbstractMesh=Mesh{FT}(N);
                         opportunistic::Bool=false,
+                        cost_digits::Int=32,
                         kwargs...
                        ) where {FT<:AbstractFloat}
         c = new{FT, typeof(mesh), typeof(search), typeof(poll)}()
@@ -77,11 +79,12 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
         c.search = search
 
         c.mesh = mesh
-        c.meshscale = ones(N)
 
         c.num_procs = nworkers()
         c.max_simultanious_evaluations = 1
         c.opportunistic = opportunistic
+
+        c.cost_digits = cost_digits
 
         return c
     end
