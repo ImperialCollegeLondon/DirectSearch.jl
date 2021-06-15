@@ -1,6 +1,6 @@
 # Usage
 
-DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
+DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, granular variables and dynamic scaling, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
 
 
 ## Problem Specification
@@ -23,46 +23,62 @@ SetObjective(p,obj)
 SetIterationLimit(p, 500)
 ```
 
-### Variable Scaling
-The range of problem variables can be set with `SetVariableRange` or `SetVariableRanges`. This sets a scale factor that is applied to poll directions before calculating trial poll points. If all variables are of a similar scale and are of a magnitude reasonably close to 10 then the default scaling should be sufficient. 
+### Variable Bounds
+The bounds of problem variables can be set with `SetVariableRange` or `SetVariableRanges`. These values are used to set the initial poll sizes of each variable. By default the variables are defined as unbounded.
 
-If a single variable is of a very different order of magnitude, then it can be scaled with `SetVariableRange`. `i` is the index of the variable, and the following numbers are the upper and lower bound of the variable respectively.
+If a bound for a single variable is required to be defined, it can be set with `SetVariableRange`. `i` is the index of the variable, and the following numbers are the upper and lower bound of the variable respectively.
 ```julia
 SetVariableRange(p, i, 10000, 20000)
 ```
 
-The same operation can be applied to all indexes with `SetVariableRanges` (example for N=3):
+The same operation can be applied to all variables with `SetVariableRanges` (example for N=3):
 ```julia
 SetVariableRanges(p, [10000, -5, -10000], [20000, 5, 10000])
 ```
 
-Be aware that this **does not** add a constraint on the variable, it **only** creates a scale factor that is applied to generated poll directions. Constraints on variable range should be added explicitly as constraints.
+Be aware that this **does not** add a constraint on the variable, it **only** gives additional information when defining the initial poll size, which acts as the initial scaling of the variables. Constraints on variable range should be added explicitly as constraints.
+
+### Granular Variables
+If variables other than continuous, such as integers, are desired to be used, this can be specified through the granularity of the problem variables. The granularity is taken to be 0 for continuous variables and 1 for integers. The granularity can be any non-negative value.
+
+If the granularity for a single variable is required to be defined, it can be set with `SetGranularity`. `i` is the index of the variable, and the following number is the granularity.
+```julia
+SetGranularity(p, i, 0.1)
+```
+
+The same operation can be applied to all variables with `SetGranularities` (example for N=3):
+```julia
+SetGranularities(p, [1.0, 0.1, 0.01])
+```
 
 ### Optimizing
 Run the algorithm with `Optimize!`.
 ```julia
 Optimize!(p)
 ```
-This will run MADS until either the iteration limit (default 1000), or precision limit (`Float64` precision) are reached. The reason for stopping can be accessed as the `status` variable within the problem.
-```julia
-@show p.status
-> p.status = DirectSearch.PrecisionLimit
-```
-The results can also be found in a similar manner:
-```julia
-@show p.x
-> p.x = [0.0, -0.5]
-@show p.x_cost
-> p.x_cost = 6.0
-```
-*(Functions for accessing this data will be added in future.)*
+This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more detail on stopping conditions, and how to define a custom one see [Stopping Conditions](@ref).
 
-If optimization stopped due to reaching an iteration limit, then the limit can be quickly increased with the `BumpIterationLimit` function:
-```julia
-BumpIterationLimit(p) #Increments iteration limit by 100 iterations
-BumpIterationLimit(p, n) #Increments iteration limit by n iterations
+After optimization is finished, the detailed results are printed as in the following example:
+
 ```
-And then optimization can be resumed by calling `optimize!` again.
+==================================================
+MADS Run Summary
+--------------------------------------------------
+Feasible Solution           [1.0005, 10.0]
+Feasible Cost               0.0
+Infeasible Solution         nothing
+Infeasible Cost             nothing
+
+Iterations                  52
+Function Evaluations        196
+Cache hits                  13
+Optimization Status         Mesh Precision limit
+
+Runtime                     0.9472651481628418
+Search Time                 4.499999999999997e-6
+Poll Time                   0.4502825000000001
+Blackbox Evaluation Time    0.00048089999999999917
+```
 
 ### Type Parameterisation
 By default, `DSProblem` is parameterised as `Float64`, but this can be overridden:
@@ -70,6 +86,14 @@ By default, `DSProblem` is parameterised as `Float64`, but this can be overridde
 p = DSProblem{Float32}(3);
 ```
 However, this is mostly untested and will almost certainly break. It is included to allow future customisation to be less painful.
+
+### Parallel Blackbox Evaluations
+If Julia was started with more than one thread using the option ``--threads N`` where `N` is the number of threads, then DirectSearch.jl can be configured to evaluate the objective functions in parallel using multiple threads. This can done by calling the function ``SetMaxEvals``:
+```julia
+SetMaxEvals(p)
+```
+
+Note that using multiple threads is only beneficial when the function to evaluate takes a long time using a single thread (1ms or more). Otherwise, the runtime will increase due to multi-threading overheads.
 
 ## Constraints
 Two kinds of constraints are included, progressive barrier, and extreme barrier constraints. As with the objective function, these should be specified as a Julia function that takes a vector, and returns a value. 
@@ -138,10 +162,9 @@ As with the search step, it is set in `DSProblem`:
 p = DSProblem(3; poll=LTMADS())
 p = DSProblem(3; poll=OrthoMADS())
 ```
-Two poll steps are included. The first is LTMADS, which generates a set of directions from a basis generated from a semi-random lower triangular matrix. The other is OrthoMADS, a later algorithm that generates an orthogonal set of directions. OrthoMADS needs the dimension of the problem to be provided. By default, LTMADS is used.
+Two poll steps are included. The first is LTMADS, which generates a set of directions from a basis generated from a semi-random lower triangular matrix. The other is OrthoMADS, a later algorithm that generates an orthogonal set of directions. It was recently adapted to granular variables as in 2019 C. Audet, S. Le Digabel, and C. Tribes, but the same name is continued to be used. By default, LTMADS is used.
 
-Note that OrthoMADS is deterministic, therefore using DirectSearch with OrthoMADS will always give the same result (assuming the objective function and constraints are also deterministic). LTMADS has a random element, and will therefore give different results every time it is run. For this reason, LTMADS may need several runs to achieve its best result.
-
+Both OrthoMADS and LTMADS are non-deterministic, and will therefore give different results every time they are run. For this reason, they may need several runs to achieve their best results.
 ## Custom Algorithms
 DirectSearch.jl is designed to make it simple to add custom search and poll stages. See [Adding a Search Step](@ref) and [Adding a Poll Step](@ref) for an overview of this.
 

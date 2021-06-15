@@ -8,12 +8,13 @@ DSProblem
 SetObjective
 SetInitialPoint
 Optimize!
-SetIterationLimit
 SetVariableRange
 SetVariableRanges
-BumpIterationLimit
-ProblemSense
+SetGranularity
+SetGranularities
+SetSense
 SetMaxEvals
+SetOpportunisticEvaluation
 ```
 ## Search Stages
 ```@docs
@@ -37,6 +38,26 @@ AddExtremeCollection(p::DirectSearch.AbstractProblem)
 AddProgressiveCollection(p::DirectSearch.AbstractProblem)
 DefaultExtremeRef
 DefaultProgressiveRef
+```
+
+## Cache
+```@docs
+CacheLoadJSON
+CacheSaveJSON
+CacheLoadJLD2
+CacheSaveJLD2
+```
+
+## Stopping Conditions
+```@docs
+AddStoppingCondition
+SetIterationLimit
+BumpIterationLimit
+SetFunctionEvaluationLimit
+BumpFunctionEvaluationLimit
+SetMinimumMeshSize
+SetMinimumPollSize
+RuntimeStoppingCondition
 ```
 
 ## Reporting

@@ -2,6 +2,11 @@ using LinearAlgebra: norm
 
 export RandomSearch, NullSearch
 
+"""
+    Search(p::DSProblem{T})::IterationOutcome  where T
+
+Generate search points and call evaluate on them.
+"""
 function Search(p::DSProblem{T})::IterationOutcome  where T
     p.status.search_time_total += @elapsed points = GenerateSearchPoints(p, p.config.search)
     p.full_output && OutputSearchStep(p, points)

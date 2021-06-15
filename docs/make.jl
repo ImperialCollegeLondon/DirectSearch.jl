@@ -7,10 +7,10 @@ makedocs(;
         "Home" => "index.md",
         "Manual" => [
             "Usage" => "man/usage.md",
+            "Stopping Conditions" => "man/stoppingconditions.md",
             "Reporting" => "man/reporting.md",
             "Adding a Search Step" => "man/addsearch.md",
             "Adding a Poll Step" => "man/addpoll.md",
-            "Constraints" => "man/constraints.md",
             "Cache" => "man/cache.md",
            ],
         "Reference" => [
