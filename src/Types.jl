@@ -7,15 +7,6 @@ export SetObjective
 
 abstract type AbstractProblem{T} end
 
-"""
-    abstract type AbstractPollDirectionGenerator end
-
-Parent type for any type used for implementing a direction generator.
-
-Generally any direction generators should return vectors with unit length of
-one
-
-"""
 abstract type AbstractPoll end
 
 abstract type AbstractSearch end

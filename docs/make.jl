@@ -7,10 +7,10 @@ makedocs(;
         "Home" => "index.md",
         "Manual" => [
             "Usage" => "man/usage.md",
+            "Stopping Conditions" => "man/addstoppingconditions.md",
             "Reporting" => "man/reporting.md",
             "Adding a Search Step" => "man/addsearch.md",
             "Adding a Poll Step" => "man/addpoll.md",
-            "Constraints" => "man/constraints.md",
             "Cache" => "man/cache.md",
            ],
         "Reference" => [
@@ -18,12 +18,12 @@ makedocs(;
             "Internal" => "ref/internal.md",
            ],
     ],
-    repo="https://github.com/ImperialCollegeLondon/DirectSearch.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/lb4418/DirectSearch.jl/blob/{commit}{path}#L{line}",
     sitename="DirectSearch.jl",
-    authors="EdwardStables <edward.stables1198@gmail.com>",
+    authors="EdwardStables <edward.stables1198@gmail.com>, Lukas Baliunas <lb4418@imperial.ac.uk>",
     assets=String[],
 )
 
 deploydocs(;
-    repo="github.com/ImperialCollegeLondon/DirectSearch.jl",
+    repo="https://github.com/lb4418/DirectSearch.jl",
 )

@@ -18,7 +18,7 @@ export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetMaxEvals,
 Return a problem definition for an `N` dimensional problem.
 
 `poll` and `search` specify the poll and search step algorithms to use. The default
-choices are (LTMADS)[@ref] and (NullSearch)[@ref] respectively.
+choices are [`LTMADS`](@ref) and [`NullSearch`](@ref) respectively.
 
 Note that if working with `Float64` (normally the case) then the type
 parameterisation can be ignored.
@@ -180,7 +180,7 @@ end
 """
     SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
 
-Set the granularity of the variable with index `i` to 'g`.
+Set the granularity of the variable with index `i` to `g`.
 """
 function SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
@@ -335,7 +335,7 @@ end
 #Cleanup and reporting
 function Finish(p)
     p.status.runtime_total = time() - p.status.start_time
-    # ReportFinal(p)
+    ReportFinal(p)
 end
 
 """
@@ -344,7 +344,6 @@ end
 Determine whether the set of trial points result in a dominating, improving, or unsuccesful
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
-
 function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
     if p.config.max_simultaneous_evaluations > 1
         EvaluatePointParallel!(p, trial_points)
@@ -353,7 +352,11 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     end
 end
 
+"""
+    valuatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
 
+Single-threaded evaluation of set of trial points.
+"""
 function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
@@ -447,6 +450,11 @@ function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{
     return result
 end
 
+"""
+    EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
+
+Multi-threaded evaluation of set of trial points. Uses the number of threads that Julia was started with.
+"""
 function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
@@ -543,42 +551,6 @@ end
     EvaluatePoint!(p, convert(Vector{Vector{T}}, trial_points))
 
 """
-    function_evaluation(p::DSProblem{T}, trial_points::Vector{Vector{T}})::Vector{T} where T
-
-Calculate the cost of the points in `trial_points` and return as a vector.
-
-If the number of available workers is greater than one, and the max_simultaneous_evaluations
-value of `p` is greater than one then the calculation is distributed across
-several cores.
-
-Currently, this has significant overheads and is much slower than evaluating in a single threaded
-manner on all testcases. This may give performance benefits when `f` is a heavy, single threaded
-operation.
-
-If a specialised way  of calling the function is needed then this function should be overriden, e.g.:
-
-```
-function DS.function_evaluation(p::DS.DSProblem{T}, trial_points::Vector{Vector{T}}) where T
-	println("I am overriden")
-	return map(p.objective, trial_points)
-end
-```
-"""
-function function_evaluation(p::DSProblem{T},
-                             trial_points::Vector{Vector{T}})::Vector{T} where T
-    if p.config.max_simultaneous_evaluations > 1
-        costs = SharedArray{T,1}((length(trial_points)))
-        #TODO try with threads, might be faster
-        @sync @distributed for i in 1:length(trial_points)
-            costs[i] = p.objective(trial_points[i])
-        end
-        return costs
-    else
-        return map(p.objective, trial_points)
-    end
-end
-
-"""
 	function_evaluation(p::DSProblem{T}, trial_point::Vector{T})::(T, Bool) where T
 
 Evaluate a single trial point with the objective function of `p`.
@@ -598,6 +570,11 @@ function function_evaluation(p::DSProblem{T},
 	return (cost, false)
 end
 
+"""
+    function_evaluation_parallel(p::DSProblem{T}, trial_point::Vector{T})::Tuple{T, Bool} where T
+
+Evaluate a single trial point with the objective function of `p` using multiple threads.
+"""
 function function_evaluation_parallel(p::DSProblem{T}, trial_point::Vector{T})::Tuple{T, Bool} where T
     if CacheQueryParallel(p, trial_point)
         p.status.cache_hits += 1

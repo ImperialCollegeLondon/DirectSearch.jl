@@ -1,7 +1,11 @@
 export AddStoppingCondition, SetIterationLimit, BumpIterationLimit, SetFunctionEvaluationLimit,
        BumpFunctionEvaluationLimit, SetMinimumMeshSize, SetMinimumPollSize, RuntimeStoppingCondition
 
-
+"""
+    AddStoppingCondition(p::DSProblem, c::T) where T <: AbstractStoppingCondition
+   
+Add the stopping condition `c` to the problem `p`.
+"""
 function AddStoppingCondition(p::DSProblem, c::T) where T <: AbstractStoppingCondition
     push!(p.stoppingconditions, c)
 end
