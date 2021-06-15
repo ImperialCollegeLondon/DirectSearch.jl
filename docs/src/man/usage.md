@@ -56,7 +56,7 @@ Run the algorithm with `Optimize!`.
 ```julia
 Optimize!(p)
 ```
-This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more detail on stopping conditions, and how to define a custom one see [Stopping Conditions](@ref).
+This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more detail on stopping conditions, and how to define a custom one see [Adding Stopping Conditions](@ref).
 
 After optimization is finished, the detailed results are printed as in the following example:
 

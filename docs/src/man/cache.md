@@ -25,4 +25,4 @@ JLD2 is a file format used to save Julia variables with their type information. 
 
 ### Functions
 
-The saving and loading of the evaluated costs is provided by the function ``CacheLoadJSON``, ``CacheSaveJSON``, ``CacheLoadJLD2``, and ``CacheSaveJLD2``. See [Public API](@ref) for more details.
+The saving and loading of the evaluated costs is provided by the function ``CacheLoadJSON``, ``CacheSaveJSON``, ``CacheLoadJLD2``, and ``CacheSaveJLD2``.

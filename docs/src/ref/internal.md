@@ -75,8 +75,7 @@ DirectSearch.B_generation
 
 ## OrthoMADS
 ```@docs
-DirectSearch.MeshUpdate!(::DirectSearch.Mesh, ::OrthoMADS, ::DirectSearch.IterationOutcome)
-DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS{T}) where T
+DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS) where T
 DirectSearch.GenerateDirections(::Int64, ::OrthoMADS)
 DirectSearch.GenerateDirectionsOnUnitSphere
 DirectSearch.HouseholderTransform

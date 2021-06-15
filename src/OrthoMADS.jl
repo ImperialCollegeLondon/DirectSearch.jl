@@ -13,7 +13,7 @@ Section 3.4.
 struct OrthoMADS <: AbstractPoll end
 
 """
-    GenerateDirections(p::DSProblem{T}, o::OrthoMADS{T})::Vector{Vector{T}}
+    GenerateDirections(p::DSProblem{T}, o::OrthoMADS)::Vector{Vector{T}}
 
 Generates columns and forms a basis matrix for direction generation.
 """

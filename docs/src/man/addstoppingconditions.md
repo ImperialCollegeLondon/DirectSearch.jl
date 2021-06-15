@@ -1,4 +1,4 @@
-# Stopping Conditions
+# Adding Stopping Conditions
 
 The software runs the optimization process until one of the stopping conditions. There are five stopping conditions, which may be used by the users, or they can define their own.
 
