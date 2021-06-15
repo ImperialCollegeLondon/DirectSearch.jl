@@ -59,8 +59,9 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
 
     mesh::MT
 
-    num_procs::Int
-    max_simultanious_evaluations::Int
+    num_threads::Int
+    max_simultaneous_evaluations::Int
+    parallel_lock::Threads.AbstractLock
     opportunistic::Bool
 
     cost_digits::Int
@@ -80,8 +81,8 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
 
         c.mesh = mesh
 
-        c.num_procs = nworkers()
-        c.max_simultanious_evaluations = 1
+        c.num_threads = Threads.nthreads()
+        c.max_simultaneous_evaluations = 1
         c.opportunistic = opportunistic
 
         c.cost_digits = cost_digits

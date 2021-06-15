@@ -86,7 +86,7 @@ function report_config(p::DSProblem)::ReportSection
     push!(entries, "Mesh Scale" => p.config.meshscale)
     push!(entries, "Opportunistic" => p.config.opportunistic)
     push!(entries, "Number of processes" => p.config.num_procs)
-    push!(entries, "Max simultanious evaluations" => p.config.max_simultanious_evaluations)
+    push!(entries, "Max simultanious evaluations" => p.config.max_simultaneous_evaluations)
     return ReportSection("Config", entries)
 end
 
@@ -324,10 +324,15 @@ function OutputPollStep(points::Vector{Vector{T}}, directions::Matrix{T}) where 
     print(str)
 end
 
-function OutputPointEvaluation(i::Int, point::Vector{T}, cost::T, h::T, is_from_cache::Bool) where T
+function OutputPointEvaluation(i::Int, point::Vector{T}, cost::T, h::T, is_from_cache::Bool, threadId::Union{Int, Nothing}=nothing) where T
     str = ""
 
-    str *= tab2 * "Evaluating point $i:" * "\n"
+    if threadId !== nothing
+        str *= tab2 * "Evaluating point $i with Thread $threadId:" * "\n"
+    else
+        str *= tab2 * "Evaluating point $i:" * "\n"
+    end
+    
     str *= tab3 * "x = $point" * "\n"
     str *= tab3 * "f(x) = $cost" * "\n"
     str *= tab3 * "h(x) = $h" * "\n"

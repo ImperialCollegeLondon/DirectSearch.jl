@@ -9,7 +9,7 @@
         @test p.status.optimization_status == DS.Unoptimized
         @test p.status.optimization_status_string == "Unoptimized"
         @test p.sense == DS.Min
-        @test p.config.max_simultanious_evaluations == 1
+        @test p.config.max_simultaneous_evaluations == 1
         @test typeof(p.config.mesh) == DS.Mesh{T}
 
         @test typeof(p.cache) == DS.PointCache{T}

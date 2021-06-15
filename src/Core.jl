@@ -121,24 +121,25 @@ MeshUpdate!(p::DSProblem, result::IterationOutcome) =
     MeshUpdate!(p.config.mesh, p.config.poll, result, p.status.success_direction)
 
 """
-    SetMaxEvals(p::DSProblem, m::Int)
+    SetMaxEvals(p::DSProblem, max::Bool=true)
 
-Set the maximum number of simultaneous function evaluations that can be run.
-By default this will be set 1.
+Set to enable or disable parallel blackbox evaluations.
+The number of threads Julia was started with will be used.
 
-If (DirectSearch.function_evaluation)[@ref] is not overriden (e.g. for sending
-calculation to a cluster) then setting this to a number greater than your PC's
-number of threads will result in no improvement.
+Note that using parallel blackbox evaluations will only result in reduced runtime
+for problems that have long blackbox evaluations.
 """
-function SetMaxEvals(p::DSProblem, m::Int)
-    if m > p.config.num_procs
-        println("$m is larger than the number of workers that Julia was started with ($(p.config.num_procs))")
-        println("Setting maximum number of workers to $(p.config.num_procs)")
-        println("Start Julia with the option `-p N` where N is the number of additional processes")
-        p.config.max_simultanious_evaluations = p.config.num_procs
+function SetMaxEvals(p::DSProblem, max::Bool=true)
+    if max
+        p.config.max_simultaneous_evaluations = p.config.num_threads
+        if p.config.num_threads == 1
+            println("Julia was started single-threaded.")
+            println("Start Julia with the option `--threads N` where N is the number of threads,\n to use parallel blackbox evaluations.")
+        end
     else
-        p.config.max_simultanious_evaluations = m
+        p.config.max_simultaneous_evaluations = 1
     end
+    p.config.parallel_lock = ReentrantLock()
 end
 
 """
@@ -217,7 +218,7 @@ end
 
 function EvaluateInitialPoint(p::DSProblem)
     p.user_initial_point == Nothing() && return
-    feasibility = ConstraintEvaluation(p.constraints, p.user_initial_point)
+    feasibility = ConstraintEvaluation(p, p.user_initial_point)
     if feasibility == StrongInfeasible
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
@@ -343,7 +344,17 @@ end
 Determine whether the set of trial points result in a dominating, improving, or unsuccesful
 algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
+
 function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
+    if p.config.max_simultaneous_evaluations > 1
+        EvaluatePointParallel!(p, trial_points)
+    else
+        EvaluatePointSequential!(p, trial_points)
+    end
+end
+
+
+function EvaluatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
     #TODO could split into an evaluation function and an update function
     isempty(trial_points) && return Unsuccessful
 
@@ -364,7 +375,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     #Iterate over all trial points
     for (i, point)=enumerate(trial_points)
 
-        feasibility = ConstraintEvaluation(p.constraints, point)
+        feasibility = ConstraintEvaluation(p, point)
 
         # Point violates h_max on at least one constraint collection
         feasibility == StrongInfeasible && continue
@@ -436,6 +447,97 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
     return result
 end
 
+function EvaluatePointParallel!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
+    #TODO could split into an evaluation function and an update function
+    isempty(trial_points) && return Unsuccessful
+
+    #Variables to store the best evaluated points
+    feasible_point = isnothing(p.x) ? FT(Inf) * ones(p.N) : p.x
+    feasible_cost = isnothing(p.x_cost) ? Threads.Atomic{FT}(FT(Inf)) : Threads.Atomic{FT}(p.x_cost)
+    infeasible_point = isnothing(p.i) ? FT(Inf) * ones(p.N) : p.i
+    infeasible_cost = isnothing(p.i_cost) ? Threads.Atomic{FT}(FT(Inf)) : Threads.Atomic{FT}(p.i_cost)
+    successful_direction = nothing
+
+
+    #The current minimum hmax value for all collections
+    h_min = GetOldHmaxSum(p.constraints)
+
+    updated = Threads.Atomic{Bool}(false)
+
+    #Iterate over all trial points
+    Threads.@threads for i=1:length(trial_points)
+        point = trial_points[i]
+
+        p.config.opportunistic && updated[] && break
+
+        feasibility = ConstraintEvaluation(p, point)
+
+        # Point violates h_max on at least one constraint collection
+        feasibility == StrongInfeasible && continue
+
+        #Point is feasible for relaxed constraints, so evaluate it
+        p.status.blackbox_time_total += @elapsed (cost, is_from_cache) = function_evaluation_parallel(p, point)
+
+        #To determine if a point is dominating or improving the combined h_max is needed
+        h = GetViolationSumParallel(p, point)
+
+        # Conditions met for a dominant point
+        if feasibility == Feasible && cost < feasible_cost[]
+            feasible_point = point
+            Threads.atomic_xchg!(feasible_cost, cost)
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
+            # updated = true
+            Threads.atomic_xchg!(updated, true)
+        elseif feasibility == WeakInfeasible && h < h_min
+            # Conditions met for an improving point (worse cost, but closer to being feasible) or
+            # a dominant point (better cost and closer to feasibility)
+            # Only record if it offers an improved constraint violation
+            infeasible_point = point
+            Threads.atomic_xchg!(infeasible_cost, cost)
+            successful_direction = isnothing(p.status.directions) ? nothing : p.status.directions[i]
+            h_min = h
+            Threads.atomic_xchg!(updated, true)
+        end
+
+        p.full_output && OutputPointEvaluation(i, point, cost, h, is_from_cache, Threads.threadid())
+    end
+
+    result = Unsuccessful
+
+    incum_i_cost = isnothing(p.i_cost) ? FT(Inf) : p.i_cost
+    incum_x_cost = isnothing(p.x_cost) ? FT(Inf) : p.x_cost
+
+    p.status.directions = nothing
+
+
+    # Dominates if there is a feasible improvement, or an infeasible point with
+    # reduced violation (determined previously) as well as a cost lower than any
+    # yet tested (feasible and infeasible)
+    if feasible_cost[] < incum_x_cost
+        result = Dominating
+    elseif infeasible_cost[] < incum_i_cost && h_min < GetOldHmaxSum(p.constraints)
+        result = Dominating
+    elseif h_min < GetOldHmaxSum(p.constraints)
+        result = Improving
+    end
+
+    if feasible_cost[] < incum_x_cost
+        p.x = feasible_point
+        p.x_cost = feasible_cost[]
+    end
+
+    if infeasible_cost[] < incum_i_cost || h_min < GetOldHmaxSum(p.constraints)
+        p.i = infeasible_point
+        p.i_cost = infeasible_cost[]
+    end
+
+    p.status.success_direction = successful_direction
+
+    UpdateConstraints(p.constraints, h_min, result, p.x, p.i)
+
+    return result
+end
+
 #Wrapper for matching to empty trial point arrays
 (EvaluatePoint!(p::DSProblem{T}, trial_points::Vector)::IterationOutcome) where T =
     EvaluatePoint!(p, convert(Vector{Vector{T}}, trial_points))
@@ -445,7 +547,7 @@ end
 
 Calculate the cost of the points in `trial_points` and return as a vector.
 
-If the number of available workers is greater than one, and the max_simultanious_evaluations
+If the number of available workers is greater than one, and the max_simultaneous_evaluations
 value of `p` is greater than one then the calculation is distributed across
 several cores.
 
@@ -464,7 +566,7 @@ end
 """
 function function_evaluation(p::DSProblem{T},
                              trial_points::Vector{Vector{T}})::Vector{T} where T
-    if p.config.max_simultanious_evaluations > 1
+    if p.config.max_simultaneous_evaluations > 1
         costs = SharedArray{T,1}((length(trial_points)))
         #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)
@@ -493,6 +595,17 @@ function function_evaluation(p::DSProblem{T},
     cost = round(p.objective(trial_point), digits=p.config.cost_digits)
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
+	return (cost, false)
+end
+
+function function_evaluation_parallel(p::DSProblem{T}, trial_point::Vector{T})::Tuple{T, Bool} where T
+    if CacheQueryParallel(p, trial_point)
+        p.status.cache_hits += 1
+        return (CacheGetParallel(p, trial_point), true)
+    end
+    cost = p.objective(trial_point)
+    p.status.function_evaluations += 1
+    CachePushParallel(p, trial_point, cost)
 	return (cost, false)
 end
 

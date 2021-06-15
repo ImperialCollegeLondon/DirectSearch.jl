@@ -52,6 +52,10 @@ function CachePush(c::PointCache{T}, x::Vector{T}, cost::T) where T
     push!(c.costs, x=>cost)
 end
 
+function CachePushParallel(p::AbstractProblem{T}, x::Vector{T}, cost::T) where T
+    lock(() -> CachePush(p.cache, x, cost), p.config.parallel_lock)
+end
+
 #TODO add equivilent for infeasible
 """
     CacheOrderPush(p::AbstractProblem{T}) where T
@@ -77,6 +81,7 @@ to `haskey`.
 """
 CacheQuery(p::AbstractProblem, x::Vector) = CacheQuery(p.cache, x)
 CacheQuery(c::PointCache{T}, x::Vector{T}) where T = haskey(c.costs, x)
+CacheQueryParallel(p::AbstractProblem, x::Vector) = lock(() -> CacheQuery(p.cache, x), p.config.parallel_lock)
 
 """
     CacheGet(p::AbstractProblem, x::Vector)
@@ -86,6 +91,7 @@ Return the cost of point `x` in the cache of `p`. Does not check if
 """
 CacheGet(p::AbstractProblem, x::Vector) = CacheGet(p.cache, x)
 (CacheGet(c::PointCache{T}, x::Vector{T})::T) where T = c.costs[x]
+CacheGetParallel(p::AbstractProblem, x::Vector) = lock(() -> CacheGet(p.cache, x), p.config.parallel_lock)
 
 """
     CacheRandomSample(p::AbstractProblem, n::Int)

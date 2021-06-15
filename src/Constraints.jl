@@ -247,7 +247,15 @@ end
 For point `x` and constraint collection `i` push the violation function result
 `h` to the cache.
 """
-function ConstraintCachePush(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
+function ConstraintCachePush(p::AbstractProblem, x::Vector{T}, i::Int, h::T) where T
+    if p.config.max_simultaneous_evaluations > 1
+        lock(() -> constraint_cache_push(p.constraints, x, i, h), p.config.parallel_lock)
+    else
+        constraint_cache_push(p.constraints, x, i, h)
+    end
+end
+
+function constraint_cache_push(c::Constraints{T}, x::Vector{T}, i::Int, h::T) where T
     if !haskey(c.cache.hmax_map, x)
         c.cache.hmax_map[x] = zeros(T, c.count)
     end
@@ -282,14 +290,14 @@ one progressive barrier constraint had a violation greater than h_max
 
 The second returned value is the sum of h_max values evaluated during the constraint checks.
 """
-function ConstraintEvaluation(constraints::Constraints{T}, p::Vector{T})::ConstraintOutcome where T
+function ConstraintEvaluation(p::AbstractProblem, point::Vector{T})::ConstraintOutcome where T
     # Initially define result as feasible
     eval_result = Feasible
-    for (i,collection) in enumerate(constraints.collections)
+    for (i,collection) in enumerate(p.constraints.collections)
         collection.ignore && continue
 
-        result = ConstraintCollectionEvaluation(collection, p)
-        ConstraintCachePush(constraints, p, i, collection.violation)
+        result = ConstraintCollectionEvaluation(p, collection, point)
+        ConstraintCachePush(p, point, i, collection.violation)
 
         if result == WeakInfeasible
             eval_result = WeakInfeasible
@@ -314,10 +322,22 @@ return ``\\infty``.
                                             sum(get(c.cache.hmax_map, p, Inf))
 
 
+(GetViolationSumParallel(p::AbstractProblem, point::Vector{T})::T) where T =
+                                            lock(() -> GetViolationSum(p.constraints, point), p.config.parallel_lock)
+
 (GetOldHmaxSum(c::Constraints{T})::T) where T = c.cache.OldHmax
 
+function ConstraintCollectionEvaluation(p::AbstractProblem, collection::ConstraintCollection,
+                                        x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
+    if p.config.max_simultaneous_evaluations > 1
+        lock(() -> constraint_collection_evaluation(collection, x), p.config.parallel_lock)
+    else
+        constraint_collection_evaluation(collection, x)
+    end
+end
+
 """
-    ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
+    constraint_collection_evaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
                                    x::Vector{T})::ConstraintOutcome where T
 
 Evalute every constraint within progressive constraint collection `collection`
@@ -327,8 +347,8 @@ If the aggregate value of the constraint evaluations exceeds the collection's
 h_max then a `StrongInfeasible` is returned. If the value is less than or equal
 to 0.0 then `Feasible` is returned. Otherwise `WeakInfeasible` is returned.
 """
-function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
-                                        x::Vector{T})::ConstraintOutcome where T
+function constraint_collection_evaluation(collection::ConstraintCollection{T,ProgressiveConstraint},
+                                          x::Vector{T})::ConstraintOutcome where T
     sum = 0.0
     for c in collection.constraints
         c.ignore && continue
@@ -343,7 +363,7 @@ function ConstraintCollectionEvaluation(collection::ConstraintCollection{T,Progr
 end
 
 """
-    ConstraintCollectionEvaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
+    constraint_collection_evaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
                                    x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
 
 Evalute every constraint within extreme constraint collection `collection` for
@@ -352,8 +372,8 @@ point `x`.
 If any constraint returns false  or a value greater than 0 then a
 `StrongInfeasible` result is returned. Otherwise a `Feasible` result is returned.
 """
-function ConstraintCollectionEvaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
-                                        x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
+function constraint_collection_evaluation(collection::ConstraintCollection{FT,ExtremeConstraint},
+                                          x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
     for c in collection.constraints
         c.ignore && continue
         v = c.f(x)
