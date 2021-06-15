@@ -11,6 +11,7 @@ DirectSearch.EvaluatePoint!
 DirectSearch.EvaluatePointSequential!
 DirectSearch.EvaluatePointParallel!
 DirectSearch.function_evaluation
+DirectSearch.function_evaluation_parallel
 ```
 
 ## Constraints
@@ -52,6 +53,8 @@ DirectSearch.get_poll_size_estimate
 DirectSearch.Poll
 DirectSearch.GeneratePollPoints
 DirectSearch.GenerateDirections(::DSProblem)
+DirectSearch.SafePointGeneration
+DirectSearch.ScaleDirection
 ```
 
 ## Search
@@ -75,8 +78,7 @@ DirectSearch.B_generation
 
 ## OrthoMADS
 ```@docs
-DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS) where T
-DirectSearch.GenerateDirections(::Int64, ::OrthoMADS)
+DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS)
 DirectSearch.GenerateDirectionsOnUnitSphere
 DirectSearch.HouseholderTransform
 ```

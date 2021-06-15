@@ -72,10 +72,10 @@ end
 """
     MeshUpdate!(mesh::Mesh, ::AbstractPoll, result::IterationOutcome, dir::Union{Vector,Nothing})
 
-Implements update rule from Audet & Dennis 2019 adapted for progressive
+Implements update rule from Audet, Le Digabel & Tribes 2019 adapted for progressive
 barrier constraints with Audet & Dennis 2009 expression 2.4.
 
-`dir` is the direction of success of the iteration, equal to `nothing`, if there is no.
+`dir` is the direction of success of the iteration, equal to `nothing`, if there is none.
 """
 function MeshUpdate!(m::Mesh, ::AbstractPoll, result::IterationOutcome, dir::Union{Vector,Nothing})
     if result == Unsuccessful
@@ -197,7 +197,7 @@ end
 """
     get_poll_size_estimate(x⁰::T, lower_bound::Union{T,Nothing}, upper_bound::Union{T,Nothing})::T where T
 
-Calculates the initial poll size, as given in Audet & Dennis 2019 expression 3.3,
+Calculates the initial poll size, as given in Audet, Le Digabel & Tribes 2019 expression 3.3,
 using the initial point and variable bounds, if specified.
 """
 function get_poll_size_estimate(x⁰::T, lower_bound::Union{T,Nothing}, upper_bound::Union{T,Nothing})::T where T

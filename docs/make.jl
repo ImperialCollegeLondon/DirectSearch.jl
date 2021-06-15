@@ -7,8 +7,8 @@ makedocs(;
         "Home" => "index.md",
         "Manual" => [
             "Usage" => "man/usage.md",
-            "Stopping Conditions" => "man/addstoppingconditions.md",
             "Reporting" => "man/reporting.md",
+            "Adding Stopping Conditions" => "man/addstoppingconditions.md",
             "Adding a Search Step" => "man/addsearch.md",
             "Adding a Poll Step" => "man/addpoll.md",
             "Cache" => "man/cache.md",

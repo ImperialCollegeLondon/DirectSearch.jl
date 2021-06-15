@@ -2,6 +2,16 @@
 
 DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, granular variables and dynamic scaling, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
 
+## Install
+To install the package, use the following command
+```
+pkg> add https://github.com/lb4418/DirectSearch.jl#lb
+```
+
+And import as with any Julia package:
+```julia
+using DirectSearch
+```
 
 ## Problem Specification
 The core data structure is the `DSProblem` type. At a minimum it requires the dimension of the problem:
@@ -24,16 +34,16 @@ SetIterationLimit(p, 500)
 ```
 
 ### Variable Bounds
-The bounds of problem variables can be set with `SetVariableRange` or `SetVariableRanges`. These values are used to set the initial poll sizes of each variable. By default the variables are defined as unbounded.
+The bounds of problem variables can be set with `SetVariableBound` or `SetVariableBounds`. These values are used to set the initial poll sizes of each variable. By default the variables are defined as unbounded.
 
-If a bound for a single variable is required to be defined, it can be set with `SetVariableRange`. `i` is the index of the variable, and the following numbers are the upper and lower bound of the variable respectively.
+If a bound for a single variable is required to be defined, it can be set with `SetVariableBound`. `i` is the index of the variable, and the following numbers are the upper and lower bound of the variable respectively.
 ```julia
-SetVariableRange(p, i, 10000, 20000)
+SetVariableBound(p, i, 10000, 20000)
 ```
 
-The same operation can be applied to all variables with `SetVariableRanges` (example for N=3):
+The same operation can be applied to all variables with `SetVariableBounds` (example for N=3):
 ```julia
-SetVariableRanges(p, [10000, -5, -10000], [20000, 5, 10000])
+SetVariableBounds(p, [10000, -5, -10000], [20000, 5, 10000])
 ```
 
 Be aware that this **does not** add a constraint on the variable, it **only** gives additional information when defining the initial poll size, which acts as the initial scaling of the variables. Constraints on variable range should be added explicitly as constraints.
@@ -56,7 +66,7 @@ Run the algorithm with `Optimize!`.
 ```julia
 Optimize!(p)
 ```
-This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more detail on stopping conditions, and how to define a custom one see [Adding Stopping Conditions](@ref).
+This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more details on stopping conditions, and how to add a custom one see [Adding Stopping Conditions](@ref).
 
 After optimization is finished, the detailed results are printed as in the following example:
 

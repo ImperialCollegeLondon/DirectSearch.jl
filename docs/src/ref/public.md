@@ -8,8 +8,8 @@ DSProblem
 SetObjective
 SetInitialPoint
 Optimize!
-SetVariableRange
-SetVariableRanges
+SetVariableBound
+SetVariableBounds
 SetGranularity
 SetGranularities
 SetSense

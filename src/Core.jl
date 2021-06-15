@@ -2,8 +2,8 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetMaxEvals,
-       SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!, SetGranularity,
+export DSProblem, SetObjective, SetInitialPoint, SetVariableBound, SetMaxEvals,
+       SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity,
        SetGranularities
 
 
@@ -13,7 +13,14 @@ export DSProblem, SetObjective, SetInitialPoint, SetVariableRange, SetMaxEvals,
                          objective::Union{Function,Nothing}=nothing,
                          initial_point::Vector=zeros(T, N),
                          iteration_limit::Int=1000,
-                         )
+                         function_evaluation_limit::Int=5000,
+                         sense::ProblemSense=Min,
+                         full_output::Bool=false,
+                         granularity::Vector=zeros(T, N),
+                         min_mesh_size::Union{T,Nothing}=nothing,
+                         min_poll_size::Union{T,Nothing}=nothing,
+                         kwargs...
+                         ) where T
 
 Return a problem definition for an `N` dimensional problem.
 
@@ -123,7 +130,7 @@ MeshUpdate!(p::DSProblem, result::IterationOutcome) =
 """
     SetMaxEvals(p::DSProblem, max::Bool=true)
 
-Set to enable or disable parallel blackbox evaluations.
+Set/unset parallel blackbox evaluations.
 The number of threads Julia was started with will be used.
 
 Note that using parallel blackbox evaluations will only result in reduced runtime
@@ -216,6 +223,13 @@ function SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
     p.config.opportunistic = opportunistic
 end
 
+"""
+    EvaluateInitialPoint(p::DSProblem)
+
+Evaluate the initial point.
+
+Throws an error if the initial point is not feasible.
+"""
 function EvaluateInitialPoint(p::DSProblem)
     p.user_initial_point == Nothing() && return
     feasibility = ConstraintEvaluation(p, p.user_initial_point)
@@ -239,13 +253,13 @@ end
 
 #TODO review if this is the kind of scaling we want to do
 """
-	SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
+	SetVariableBound(p::DSProblem{T}, index::Int, l::T, u::T) where T
 
-Set the expected range of the variable with index `i` to between lower (`l`) and upper (`u`)
+Set the expected bounds of the variable with index `i` to between lower (`l`) and upper (`u`)
 values. This **does not** create a constraint, and is only used for scaling when a variable
 varies with a significantly different scale to the others.
 """
-function SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
+function SetVariableBound(p::DSProblem{T}, index::Int, l::T, u::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
     
     p.lower_bounds[index] = isinf(l) ? nothing : l
@@ -253,17 +267,17 @@ function SetVariableRange(p::DSProblem{T}, index::Int, l::T, u::T) where T
 end
 
 """
-	SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
+	SetVariableBounds(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
 
-Call [`SetVariableRange`](@ref) for each variable. The vectors `l` and `u` should contain
+Call [`SetVariableBound`](@ref) for each variable. The vectors `l` and `u` should contain
 a lower and upper bound for each variable.
 """
-function SetVariableRanges(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
+function SetVariableBounds(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
     size(l, 1) == p.N || error("Lower bound vector dimensions don't match problem definition")
     size(u, 1) == p.N || error("Upper bound vector dimensions don't match problem definition")
     
     for i=1:p.N
-        SetVariableRange(p, i, l[i], u[i])
+        SetVariableBound(p, i, l[i], u[i])
     end
 end
 

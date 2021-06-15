@@ -3,7 +3,6 @@
 File defines the abstract types used within the package.
 
 =#
-export SetObjective
 
 abstract type AbstractProblem{T} end
 
@@ -17,14 +16,24 @@ abstract type AbstractSearch end
 Parent type of any struct implementing the construction of a mesh. To maintain
 compatibility with other aspects of the package, the naming convention for
 variables within structs must be followed. These respect the notation used
-within Audet & Dennis 2006.
+within Audet, Le Digabel & Tribes 2019.
 """
 abstract type AbstractMesh end
 
 abstract type AbstractConstraint end
 
+"""
+    abstract type AbstractCache end
+
+Parent type of any struct implementing the cache.
+"""
 abstract type AbstractCache end
 
+"""
+    abstract type AbstractStoppingCondition end
+
+Parent type of any struct implementing a stopping condition.
+"""
 abstract type AbstractStoppingCondition end
 
 @enum ProblemSense Min Max
@@ -32,10 +41,14 @@ abstract type AbstractStoppingCondition end
 @enum OptimizationStatus Unoptimized MeshPrecisionLimit PollPrecisionLimit IterationLimit FunctionEvaluationLimit RuntimeLimit OtherStoppingCondition
 
 """
-    Config(;sense::ProblemSense=Min,
-            opportunistic::Bool=false,
-            kwargs...
-          )
+    Config{FT}(N::Int,
+           poll::AbstractPoll,
+           search::AbstractSearch,
+           mesh::AbstractMesh=Mesh{FT}(N);
+           opportunistic::Bool=false,
+           cost_digits::Int=32,
+           kwargs...
+           ) where {FT<:AbstractFloat}
 
 Encapsulates configuration options for the solver, generally shouldn't
 be user-edited.
@@ -82,6 +95,11 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
     end
 end
 
+"""
+    Status{T}() where T
+
+Holds the status information of the solver.
+"""
 mutable struct Status{T}
     function_evaluations::Int64
     cache_hits::Int64

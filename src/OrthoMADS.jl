@@ -13,19 +13,13 @@ Section 3.4.
 struct OrthoMADS <: AbstractPoll end
 
 """
-    GenerateDirections(p::DSProblem{T}, o::OrthoMADS)::Vector{Vector{T}}
+    GenerateDirections(p::AbstractProblem, o::OrthoMADS)::Matrix
 
-Generates columns and forms a basis matrix for direction generation.
+Generates the poll directions, using the poll set generation
+as described in Audet and Le Digabel 2015 Section 3.4.
 """
 (GenerateDirections(p::AbstractProblem, o::OrthoMADS)::Matrix) =
     GenerateDirections(p.N, o)
-
-"""
-    GenerateDirections(N::Int64, ::OrthoMADS)::Matrix
-
-Generates columns and forms a basis matrix for direction generation,
-using the poll set generation as described in Audet and Le Digabel 2015 Section 3.4.
-"""
 function GenerateDirections(N::Int64, ::OrthoMADS)::Matrix
     dirs_on_unit_sphere = GenerateDirectionsOnUnitSphere(N)
     H = HouseholderTransform(dirs_on_unit_sphere)

@@ -42,6 +42,12 @@ function GeneratePollPoints(p::DSProblem{T}, ::AbstractMesh)::Vector{Vector{T}} 
     return points
 end
 
+"""
+    SafePointGeneration(x::Vector{T}, d::Vector{T}, m::Mesh{T})::Vector{T} where T
+
+Generate a trial point around incumbent point `x`, using direction `d`, and removing
+the potential low-level computational error for granular variables.
+"""
 (SafePointGeneration(x::Vector{T}, d::Vector{T}, m::Mesh{T})::Vector{T}) where T = SafePointGeneration(x, d, m.δ, m.digits)
 function SafePointGeneration(x::Vector{T}, d::Vector{T}, δ::Vector{T}, digits::Vector{Union{Int, Nothing}})::Vector{T} where T
     result = []
@@ -53,6 +59,11 @@ function SafePointGeneration(x::Vector{T}, d::Vector{T}, δ::Vector{T}, digits::
     return result
 end
 
+"""
+    ScaleDirection(p::DSProblem, dir::Vector{T}) where T
+
+Scale the direction using the mesh ratio vector ρ
+"""
 function ScaleDirection(p::DSProblem, dir::Vector{T}) where T
     infNorm = maximum(abs.(dir))
 
@@ -65,6 +76,11 @@ function ScaleDirection(p::DSProblem, dir::Vector{T}) where T
     return round.(d_scaled .* p.config.mesh.ρ)
 end
 
+"""
+    GenerateDirections(p::DSProblem)
+
+Generate a set of directions with the configured polling algorithm.
+"""
 function GenerateDirections(p::DSProblem)
     directions = GenerateDirections(p, p.config.poll)
     return mapslices(dir -> ScaleDirection(p, dir), directions, dims = 1)

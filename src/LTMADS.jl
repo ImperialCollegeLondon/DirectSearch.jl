@@ -29,7 +29,7 @@ mutable struct LTMADS{T} <: AbstractPoll
 end
 
 """
-    GenerateDirections(p::DSProblem{T}, DG::LTMADS{T})::Vector{Vector{T}}
+    GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T}
 
 Generates columns and forms a basis matrix for direction generation.
 """
