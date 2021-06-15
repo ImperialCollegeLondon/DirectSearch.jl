@@ -120,23 +120,23 @@ MeshUpdate!(p::DSProblem, result::IterationOutcome) =
     MeshUpdate!(p.config.mesh, p.config.poll, result, p.status.success_direction)
 
 """
-    SetMaxEvals(p::DSProblem, m::Int)
+    SetMaxEvals(p::DSProblem, max::Bool=true)
 
-Set the maximum number of simultaneous function evaluations that can be run.
-By default this will be set 1.
+Set to enable or disable parallel blackbox evaluations.
+The number of threads Julia was started with will be used.
 
-If (DirectSearch.function_evaluation)[@ref] is not overriden (e.g. for sending
-calculation to a cluster) then setting this to a number greater than your PC's
-number of threads will result in no improvement.
+Note that using parallel blackbox evaluations will only result in reduced runtime
+for problems that have long blackbox evaluations.
 """
-function SetMaxEvals(p::DSProblem, m::Int)
-    if m > p.config.num_threads
-        println("$m is larger than the number of threads that Julia was started with ($(p.config.num_threads))")
-        println("Setting maximum number of threads to $(p.config.num_threads)")
-        println("Start Julia with the option `--threads N` where N is the number of threads")
-        p.config.max_simultanious_evaluations = p.config.num_threads
+function SetMaxEvals(p::DSProblem, max::Bool=true)
+    if max
+        p.config.max_simultaneous_evaluations = p.config.num_threads
+        if p.config.num_threads == 1
+            println("Julia was started single-threaded.")
+            println("Start Julia with the option `--threads N` where N is the number of threads,\n to use parallel blackbox evaluations.")
+        end
     else
-        p.config.max_simultanious_evaluations = m
+        p.config.max_simultaneous_evaluations = 1
     end
     p.config.parallel_lock = ReentrantLock()
 end
@@ -345,7 +345,7 @@ algorithm iteration. Update the feasible and infeasible incumbent points of `p`.
 """
 
 function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
-    if p.config.max_simultanious_evaluations > 1
+    if p.config.max_simultaneous_evaluations > 1
         EvaluatePointParallel!(p, trial_points)
     else
         EvaluatePointSequential!(p, trial_points)
@@ -546,7 +546,7 @@ end
 
 Calculate the cost of the points in `trial_points` and return as a vector.
 
-If the number of available workers is greater than one, and the max_simultanious_evaluations
+If the number of available workers is greater than one, and the max_simultaneous_evaluations
 value of `p` is greater than one then the calculation is distributed across
 several cores.
 
@@ -565,7 +565,7 @@ end
 """
 function function_evaluation(p::DSProblem{T},
                              trial_points::Vector{Vector{T}})::Vector{T} where T
-    if p.config.max_simultanious_evaluations > 1
+    if p.config.max_simultaneous_evaluations > 1
         costs = SharedArray{T,1}((length(trial_points)))
         #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)

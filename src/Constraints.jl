@@ -248,7 +248,7 @@ For point `x` and constraint collection `i` push the violation function result
 `h` to the cache.
 """
 function ConstraintCachePush(p::AbstractProblem, x::Vector{T}, i::Int, h::T) where T
-    if p.config.max_simultanious_evaluations > 1
+    if p.config.max_simultaneous_evaluations > 1
         lock(() -> constraint_cache_push(p.constraints, x, i, h), p.config.parallel_lock)
     else
         constraint_cache_push(p.constraints, x, i, h)
@@ -329,7 +329,7 @@ return ``\\infty``.
 
 function ConstraintCollectionEvaluation(p::AbstractProblem, collection::ConstraintCollection,
                                         x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
-    if p.config.max_simultanious_evaluations > 1
+    if p.config.max_simultaneous_evaluations > 1
         lock(() -> constraint_collection_evaluation(collection, x), p.config.parallel_lock)
     else
         constraint_collection_evaluation(collection, x)

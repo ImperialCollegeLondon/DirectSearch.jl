@@ -86,7 +86,7 @@ function report_config(p::DSProblem)::ReportSection
     push!(entries, "Mesh Scale" => p.config.meshscale)
     push!(entries, "Opportunistic" => p.config.opportunistic)
     push!(entries, "Number of processes" => p.config.num_procs)
-    push!(entries, "Max simultanious evaluations" => p.config.max_simultanious_evaluations)
+    push!(entries, "Max simultanious evaluations" => p.config.max_simultaneous_evaluations)
     return ReportSection("Config", entries)
 end
 
