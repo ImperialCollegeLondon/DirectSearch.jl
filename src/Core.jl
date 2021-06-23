@@ -2,7 +2,7 @@ using LinearAlgebra
 using Distributed
 using SharedArrays
 
-export DSProblem, SetObjective, SetInitialPoint, SetVariableBound, SetMaxEvals,
+export DSProblem, SetObjective, SetInitialPoint, SetVariableBound, SetMaxEvals, SetFullOutput,
        SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity,
        SetGranularities
 
@@ -147,6 +147,15 @@ function SetMaxEvals(p::DSProblem, max::Bool=true)
         p.config.max_simultaneous_evaluations = 1
     end
     p.config.parallel_lock = ReentrantLock()
+end
+
+"""
+    SetFullOutput(p::DSProblem, full_output=true)
+
+Set/unset detailed outputting of iterations.
+"""
+function SetFullOutput(p::DSProblem, full_output=true)
+    p.full_output = full_output
 end
 
 """
