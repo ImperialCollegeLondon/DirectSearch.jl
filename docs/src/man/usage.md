@@ -5,7 +5,7 @@ DirectSearch.jl provides a framework for the implementation of direct search alg
 ## Install
 To install the package, use the following command
 ```
-pkg> add https://github.com/lb4418/DirectSearch.jl#lb
+pkg> add https://github.com/ImperialCollegeLondon/DirectSearch.jl
 ```
 
 And import as with any Julia package:

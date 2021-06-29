@@ -18,12 +18,12 @@ makedocs(;
             "Internal" => "ref/internal.md",
            ],
     ],
-    repo="https://github.com/lb4418/DirectSearch.jl/blob/{commit}{path}#L{line}",
+    repo="https://github.com/ImperialCollegeLondon/DirectSearch.jl/blob/{commit}{path}#L{line}",
     sitename="DirectSearch.jl",
     authors="EdwardStables <edward.stables1198@gmail.com>, Lukas Baliunas <lb4418@imperial.ac.uk>",
     assets=String[],
 )
 
 deploydocs(;
-    repo="https://github.com/lb4418/DirectSearch.jl",
+    repo="github.com/ImperialCollegeLondon/DirectSearch.jl",
 )

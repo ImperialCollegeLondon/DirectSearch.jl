@@ -12,7 +12,7 @@ DirectSearch.jl provides a framework for the implementation of direct search alg
 
 This package is not yet registered. Install with:
 ```
-pkg> add https://github.com/lb4418/DirectSearch.jl#lb
+pkg> add https://github.com/ImperialCollegeLondon/DirectSearch.jl
 ```
 And import as with any Julia package:
 ```julia
@@ -21,7 +21,7 @@ using DirectSearch
 
 ## Usage
 
-A more detailed guide is available in the [documentation](https://lb4418.github.io/DirectSearch.jl/lb/man/usage/).
+A more detailed guide is available in the [documentation](https://imperialcollegelondon.github.io/DirectSearch.jl/dev/man/usage/).
 
 A problem is defined with `DSProblem(N)`, where N is the dimension of the problem. The objective function and initial point need to be set before optimization can run.
 ```julia
@@ -41,7 +41,7 @@ Run the algorithm with `Optimize!`.
 ```julia
 Optimize!(p)
 ```
-This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more details on stopping conditions, and how to add a custom one see [Adding Stopping Conditions](https://lb4418.github.io/DirectSearch.jl/lb/man/addstoppingconditions/) in the documentation.
+This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more details on stopping conditions, and how to add a custom one see [Adding Stopping Conditions](https://imperialcollegelondon.github.io/DirectSearch.jl/dev/man/addstoppingconditions/) in the documentation.
 
 After optimization is finished, the detailed results are printed as in the following example:
 
