@@ -98,24 +98,4 @@ using LinearAlgebra
         @test p.status.optimization_status_string == "Unoptimized"
         @test p.status.optimization_status == DS.Unoptimized
     end
-
-    @testset "MeshUpdate" begin
-        p = DS.DSProblem{T}(3, poll=LTMADS{T}())
-        @test p.config.mesh.Δᵐ == 1
-        DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.config.mesh.Δᵐ == 1/4
-        DS.MeshUpdate!(p, DS.Dominating)
-        @test p.config.mesh.Δᵐ == 1
-        DS.MeshUpdate!(p, DS.Improving)
-        @test p.config.mesh.Δᵐ == 1
-        DS.MeshUpdate!(p, DS.Dominating)
-        @test p.config.mesh.Δᵐ == 1
-        DS.MeshUpdate!(p, DS.Unsuccessful)
-        DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.config.mesh.Δᵐ == 1/16
-        DS.MeshUpdate!(p, DS.Improving)
-        @test p.config.mesh.Δᵐ == 1/16
-        DS.MeshUpdate!(p, DS.Dominating)
-        @test p.config.mesh.Δᵐ == 1/4
-    end
 end
