@@ -2,7 +2,7 @@
 
 ## Cache Saving and Loading
 
-The evaluated costs during the optimization process are stored in the cache as a dictionary with the point as the key, and its evaluted cost as the value. The cache may be saved in a file after running the optimization, and can be pre-loaded in order to reduce the number of function evaluations.
+The evaluated costs during the optimization process are stored in the cache as a dictionary with the poll point as the key, and its evaluted cost as the value. The cache may be saved in a file after running the optimization, and can then be pre-loaded in order to reduce the number of function evaluations in a future run.
 
 Two formats are currently supported: JSON and JLD2.
 

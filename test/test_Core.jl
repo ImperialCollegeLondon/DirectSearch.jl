@@ -19,92 +19,107 @@
         @test typeof(p.constraints) == DS.Constraints{T}
     end
 
-    @testset "Mesh" begin
-        N = 3
-        p = DSProblem{T}(N)
-        m = DS.Mesh{T}(N)
-        @test p.config.mesh.G == m.G == [1 0 0; 0 1 0; 0 0 1]
-        @test p.config.mesh.D == m.D == [1 0 0 -1 0 0; 0 1 0 0 -1 0; 0 0 1 0 0 -1]
-        @test p.config.mesh.Δᵐ == m.Δᵐ == 1.0
-        # More rigourous tests for MeshUpdate! are in test_LTMADS etc.
-        DS.MeshUpdate!(p, DS.Unsuccessful)
-        @test p.config.mesh.Δᵐ == 0.25
-    end
-
-    @testset "min_mesh_size" begin
-        N = 3
-        p = DSProblem{Float64}(N)
-        @test DS.min_mesh_size(p) ≈ 1.1102230246251565e-16
-    end
-
-    @testset "max_evals" begin
-        #This will likely be changing, so don't bother test yet
-    end
-
     @testset "Setters" begin
         test_point = [1, 0.3]
         test_out = 49
         p = DSProblem{T}(2)
         f = DS.rosenbrock
 
-        # SetObjective
-        @test !isdefined(p, :objective)
-        SetObjective(p, f)
-        @test isdefined(p, :objective)
-        @test p.objective(test_point) ≈ test_out
+        @testset "SetObjective" begin
+            @test !isdefined(p, :objective)
+            SetObjective(p, f)
+            @test isdefined(p, :objective)
+            @test p.objective(test_point) ≈ test_out
 
-        p = DSProblem{T}(2, sense=DS.Max)
-        SetObjective(p, f)
-        @test p.objective(test_point) ≈ -test_out
+            p = DSProblem{T}(2, sense=DS.Max)
+            SetObjective(p, f)
+            @test p.objective(test_point) ≈ -test_out
+        end
 
 
-        # SetInitialPoint
-        @test_throws ErrorException SetInitialPoint(p, [1.0, 1.0, 1.0])
-        @test_throws ErrorException SetInitialPoint(p, [1.0])
-        SetInitialPoint(p, [5.0, 5.0])
-        @test p.user_initial_point == [5.0, 5.0]
+        @testset "SetInitialPoint" begin
+            @test_throws ErrorException SetInitialPoint(p, [1.0, 1.0, 1.0])
+            @test_throws ErrorException SetInitialPoint(p, [1.0])
+            SetInitialPoint(p, [5.0, 5.0])
+            @test p.user_initial_point == [5.0, 5.0]
+        end
 
-        # Iteration limits
-        @test p.stoppingconditions[1].limit == 1000
-        @test p.status.iteration == 0
+        @testset "SetVariableBound" begin
+            p = DSProblem{T}(3)
+            @test_throws ErrorException SetVariableBound(p, 4, -5.0, 5.0)
+            SetVariableBound(p, 3, -5.0, 5.0)
+            @test p.lower_bounds == [nothing, nothing, -5.0]
+            @test p.upper_bounds == [nothing, nothing, 5.0]
+            SetVariableBound(p, 3, -10.0, 10.0)
+            @test p.lower_bounds == [nothing, nothing, -10.0]
+            @test p.upper_bounds == [nothing, nothing, 10.0]
+        end
 
-        Optimize!(p)
+        @testset "SetVariableBounds" begin
+            p = DSProblem{T}(3)
+            @test_throws ErrorException SetVariableBounds(p, [-5.0, -5.0, -5.0, -5.0], [5.0, 5.0, 5.0, 5.0])
+            SetVariableBounds(p, [-5.0, -5.0, -5.0], [5.0, 5.0, 5.0])
+            @test p.lower_bounds == [-5.0, -5.0, -5.0]
+            @test p.upper_bounds == [5.0, 5.0, 5.0]
+            SetVariableBounds(p, [-10.0, -10.0, -10.0], [10.0, 10.0, 10.0])
+            @test p.lower_bounds == [-10.0, -10.0, -10.0]
+            @test p.upper_bounds == [10.0, 10.0, 10.0]
+        end
 
-        @test p.status.iteration == 1000
-        @test_throws ErrorException SetIterationLimit(p, 900)
-        SetIterationLimit(p, 1100)
-        @test p.stoppingconditions[1].limit == 1100
-        BumpIterationLimit(p, 200)
-        @test p.stoppingconditions[1].limit == 1300
+        @testset "SetMaxEvals" begin
+            p = DSProblem(3)
+            p.config.num_threads = 5
+            SetMaxEvals(p)
+            @test p.config.max_simultaneous_evaluations == 5
+            SetMaxEvals(p, false)
+            @test p.config.max_simultaneous_evaluations == 1
+        end
 
-        # Variable Ranges
-        p = DSProblem{T}(3)
-        @test p.config.meshscale == [1.0, 1.0, 1.0]
-        @test_throws ErrorException SetVariableRange(p, 4, -5.0, 5.0)
-        SetVariableRange(p, 3, -5.0, 5.0)
-        @test p.config.meshscale == [1.0, 1.0, 1.0]
-        SetVariableRange(p, 3, -10.0, 10.0)
-        @test p.config.meshscale == [1.0, 1.0, 2.0]
+        @testset "SetFullOutput" begin
+            p = DSProblem{T}(3)
+            SetFullOutput(p)
+            @test p.full_output
+            SetFullOutput(p, false)
+            @test !p.full_output
+        end
 
-        @test_throws ErrorException SetVariableRanges(p, [-5.0, -5.0, -5.0, -5.0], [5.0, 5.0, 5.0, 5.0])
-        SetVariableRanges(p, [-5.0, -5.0, -5.0], [5.0, 5.0, 5.0])
-        @test p.config.meshscale == [1.0, 1.0, 1.0]
-        SetVariableRanges(p, [-10.0, -10.0, -10.0], [10.0, 10.0, 10.0])
-        @test p.config.meshscale == [2.0, 2.0, 2.0]
+        @testset "SetOpportunisticEvaluation" begin
+            p = DSProblem{T}(3)
+            SetOpportunisticEvaluation(p)
+            @test p.config.opportunistic
+            SetOpportunisticEvaluation(p, opportunistic=false)
+            @test !p.config.opportunistic
+        end
 
-        # Sense
-        p = DSProblem{T}(3)
-        @test p.sense == DS.Min
-        p = DSProblem{T}(3, sense=DS.Min)
-        @test p.sense == DS.Min
-        p = DSProblem{T}(3, sense=DS.Max)
-        @test p.sense == DS.Max
+        @testset "SetSense" begin
+            p = DSProblem{T}(3)
+            @test p.sense == DS.Min
+            p = DSProblem{T}(3, sense=DS.Min)
+            @test p.sense == DS.Min
+            p = DSProblem{T}(3, sense=DS.Max)
+            @test p.sense == DS.Max
 
-        p = DSProblem{T}(3)
-        SetSense(p, DS.Max)
-        @test p.sense == DS.Max
-        SetSense(p, DS.Min)
-        @test p.sense == DS.Min
+            p = DSProblem{T}(3)
+            SetSense(p, DS.Max)
+            @test p.sense == DS.Max
+            SetSense(p, DS.Min)
+            @test p.sense == DS.Min
+        end
+
+        @testset "SetGranularity" begin
+            p = DSProblem{T}(3)
+            @test_throws ErrorException SetGranularity(p, 4, 3.0)
+            @test_throws ErrorException SetGranularity(p, 2, -3.0)
+            SetGranularity(p, 2, 3.0)
+            @test p.granularity == [0.0, 3.0, 0.0]
+        end
+
+        @testset "SetGranularities" begin
+            p = DSProblem{T}(3)
+            @test_throws ErrorException SetGranularities(p, [1.0, 2.0, 3.0, 4.0])
+            SetGranularities(p, [1.0, 2.0, 3.0])
+            @test p.granularity == [1.0, 2.0, 3.0]
+        end
     end
 
     @testset "Optimize!" begin

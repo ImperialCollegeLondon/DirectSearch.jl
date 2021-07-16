@@ -376,7 +376,7 @@ function EvaluatePoint!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::Ite
 end
 
 """
-    valuatePointSequential!(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
+    EvaluatePointSequential(p::DSProblem{FT}, trial_points::Vector{Vector{FT}})::IterationOutcome where {FT<:AbstractFloat}
 
 Single-threaded evaluation of set of trial points.
 """

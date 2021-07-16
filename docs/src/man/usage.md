@@ -56,7 +56,7 @@ If the granularity for a single variable is required to be defined, it can be se
 SetGranularity(p, i, 0.1)
 ```
 
-The same operation can be applied to all variables with `SetGranularities` (example for N=3):
+The same operation can be applied to all variables with `SetGranularities` (example for a problem with 3 variables):
 ```julia
 SetGranularities(p, [1.0, 0.1, 0.01])
 ```
@@ -66,9 +66,9 @@ Run the algorithm with `Optimize!`.
 ```julia
 Optimize!(p)
 ```
-This will run MADS until one of the defined stopping conditions is met. By default, the stopping conditions are set to the iteration limit (default 1000), function evaluation limit (default 5000), mesh precision limit (`Float64` precision) and poll precision limit (`Float64` precision). For more details on stopping conditions, and how to add a custom one see [Adding Stopping Conditions](@ref).
+This will run MADS until one of the defined stopping conditions is met. For more details on stopping conditions, and how to add a custom one see [Adding Stopping Conditions](@ref).
 
-After optimization is finished, the detailed results are printed as in the following example:
+After the optimization is finished, detailed results are printed as in the following example:
 
 ```
 ==================================================
@@ -172,7 +172,7 @@ As with the search step, it is set in `DSProblem`:
 p = DSProblem(3; poll=LTMADS())
 p = DSProblem(3; poll=OrthoMADS())
 ```
-Two poll steps are included. The first is LTMADS, which generates a set of directions from a basis generated from a semi-random lower triangular matrix. The other is OrthoMADS, a later algorithm that generates an orthogonal set of directions. It was recently adapted to granular variables as in 2019 C. Audet, S. Le Digabel, and C. Tribes, but the same name is continued to be used. By default, LTMADS is used.
+Two poll types are included. The first is LTMADS, which generates a set of directions from a basis generated from a semi-random lower triangular matrix. The other is OrthoMADS, a later algorithm that generates an orthogonal set of directions. It was recently adapted to granular variables in 2019 C. Audet, S. Le Digabel, and C. Tribes, but the same name is continued to be used. By default, LTMADS is used.
 
 Both OrthoMADS and LTMADS are non-deterministic, and will therefore give different results every time they are run. For this reason, they may need several runs to achieve their best results.
 ## Custom Algorithms

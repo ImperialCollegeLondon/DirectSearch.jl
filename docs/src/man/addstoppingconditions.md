@@ -1,6 +1,6 @@
 # Adding Stopping Conditions
 
-The software runs the optimization process until one of the stopping conditions. There are five stopping conditions, which may be used by the users, or they can define their own.
+The software runs the optimization process until one of the stopping conditions is met. There are five stopping conditions defined in the package, and the ability for custom stopping conditions to be defined.
 
 ## Implementation
 
@@ -12,7 +12,7 @@ Each stopping condition is defined as a concrete type of the abstract type `Abst
 (CheckStoppingCondition(p::DSProblem, s::T) where T <: AbstractStoppingCondition)::Bool
 ```
 
-`StoppingConditionStatus` defines the textual representation of the stopping condition, which is used in reporting. It takes as argument the instance of the concrete stopping condition type and should return a `string`. If this function is ommited, then the stopping condition status will be represented as "Unknown stopping condition status".
+`StoppingConditionStatus` defines the textual representation of the stopping condition, which is used in reporting. It takes as an argument the instance of the concrete stopping condition type and should return a `string`. If this function is ommited, then the stopping condition status will be represented as "Unknown stopping condition status".
 
 ```julia
 (StoppingConditionStatus(::T) where T <: AbstractStoppingCondition)::String
@@ -28,7 +28,7 @@ end
 
 ## Native
 
-There are currently five stopping conditions that may be used:
+There are currently five stopping conditions implemented in the package:
 
 - Iteration Limit (`IterationStoppingCondition`)
 - Function Evaluation Limit (`FunctionEvaluationStoppingCondition`)

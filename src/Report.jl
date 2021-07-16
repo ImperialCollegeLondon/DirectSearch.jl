@@ -83,9 +83,8 @@ function report_config(p::DSProblem)::ReportSection
     push!(entries, "Search" => typeof(p.config.search))
     push!(entries, "Poll" => typeof(p.config.poll))
     push!(entries, "Mesh" => typeof(p.config.mesh))
-    push!(entries, "Mesh Scale" => p.config.meshscale)
     push!(entries, "Opportunistic" => p.config.opportunistic)
-    push!(entries, "Number of processes" => p.config.num_procs)
+    push!(entries, "Number of threads" => p.config.num_threads)
     push!(entries, "Max simultanious evaluations" => p.config.max_simultaneous_evaluations)
     return ReportSection("Config", entries)
 end
