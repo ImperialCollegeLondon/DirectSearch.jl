@@ -146,7 +146,6 @@ function SetMaxEvals(p::DSProblem, max::Bool=true)
     else
         p.config.max_simultaneous_evaluations = 1
     end
-    p.config.parallel_lock = ReentrantLock()
 end
 
 """

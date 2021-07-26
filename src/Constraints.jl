@@ -249,7 +249,7 @@ For point `x` and constraint collection `i` push the violation function result
 """
 function ConstraintCachePush(p::AbstractProblem, x::Vector{T}, i::Int, h::T) where T
     if p.config.max_simultaneous_evaluations > 1
-        lock(() -> constraint_cache_push(p.constraints, x, i, h), p.config.parallel_lock)
+        lock(() -> constraint_cache_push(p.constraints, x, i, h), p.config.constraint_cache_lock)
     else
         constraint_cache_push(p.constraints, x, i, h)
     end
@@ -323,14 +323,14 @@ return ``\\infty``.
 
 
 (GetViolationSumParallel(p::AbstractProblem, point::Vector{T})::T) where T =
-                                            lock(() -> GetViolationSum(p.constraints, point), p.config.parallel_lock)
+                                            lock(() -> GetViolationSum(p.constraints, point), p.config.constraint_cache_lock)
 
 (GetOldHmaxSum(c::Constraints{T})::T) where T = c.cache.OldHmax
 
 function ConstraintCollectionEvaluation(p::AbstractProblem, collection::ConstraintCollection,
                                         x::Vector{FT})::ConstraintOutcome where {FT<:AbstractFloat}
     if p.config.max_simultaneous_evaluations > 1
-        lock(() -> constraint_collection_evaluation(collection, x), p.config.parallel_lock)
+        lock(() -> constraint_collection_evaluation(collection, x), p.config.constraint_cache_lock)
     else
         constraint_collection_evaluation(collection, x)
     end

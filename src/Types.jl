@@ -65,7 +65,8 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
 
     num_threads::Int
     max_simultaneous_evaluations::Int
-    parallel_lock::Threads.AbstractLock
+    constraint_cache_lock::ReentrantLock
+    cost_cache_lock::ReentrantLock
     opportunistic::Bool
 
     cost_digits::Int
@@ -90,6 +91,9 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
         c.opportunistic = opportunistic
 
         c.cost_digits = cost_digits
+
+        c.constraint_cache_lock = ReentrantLock()
+        c.cost_cache_lock = ReentrantLock()
 
         return c
     end
