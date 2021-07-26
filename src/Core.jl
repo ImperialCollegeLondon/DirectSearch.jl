@@ -215,11 +215,11 @@ function EvaluateInitialPoint(p::DSProblem)
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
         p.i = p.user_initial_point
-        p.i_cost = p.objective(p.user_initial_point)
+        p.i_cost = call_objective( p.objective, p.user_initial_point, p.user_params )
         CachePush(p, p.i, p.i_cost)
     elseif feasibility == Feasible
         p.x = p.user_initial_point
-        p.x_cost = p.objective(p.user_initial_point)
+        p.x_cost = call_objective( p.objective, p.user_initial_point, p.user_params )
         CachePush(p, p.x, p.x_cost)
     end
 end
@@ -420,16 +420,11 @@ function function_evaluation(p::DSProblem{T},
         costs = SharedArray{T,1}((length(trial_points)))
         #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)
-            # Pass in parameters if any are specified
-            if isa( p.user_params, Nothing )
-                costs[i] = p.objective(trial_points[i])
-            else
-                costs[i] = p.objective(trial_points[i], p.user_params)
-            end
+            costs[i] = call_objective( p.objective, trial_points[i], p.user_params )
         end
         return costs
     else
-        return map(p.objective, trial_points)
+        return map(call_objective, p.objective, trial_points, p.user_params)
     end
 end
 
@@ -445,14 +440,19 @@ function function_evaluation(p::DSProblem{T},
                              trial_point::Vector{T})::T where T
     CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
 
-    # Pass in parameters if any are specified
-    if isa( p.user_params, Nothing )
-        cost = p.objective(trial_point)
-    else
-        cost = p.objective(trial_point, p.user_params)
-    end
+    cost = call_objective( p.objective, trial_point, p.user_params )
 
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
 	return cost
+end
+
+
+@inline function call_objective( func, point::Vector{T}, params )::T where T
+    # Pass in parameters if any are specified
+    if isa( params, Nothing )
+        return func( point )
+    else
+        return func( point, params )
+    end
 end
