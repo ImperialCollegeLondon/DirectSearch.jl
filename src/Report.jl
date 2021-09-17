@@ -231,7 +231,7 @@ function OutputIterationDetails(p::DSProblem)
 end
 
 MeshDetails(p::DSProblem) = MeshDetails(p.config.mesh)
-function MeshDetails(m::Mesh)::String
+function MeshDetails(m::IsotropicMesh)::String
     str = ""
     str *= tab1 * "Mesh:" * "\n"
     str *= tab2 * "Mesh size: $(m.δ)" * "\n"

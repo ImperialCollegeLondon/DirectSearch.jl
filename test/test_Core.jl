@@ -1,3 +1,5 @@
+using Random
+
 @testset "Core" begin
     T = Float64
     @testset "DSProblem" begin
@@ -5,12 +7,12 @@
         p = DSProblem{T}(N)
         @test p.N == N
         @test typeof(p.config.search) == NullSearch
-        @test typeof(p.config.poll) == LTMADS{T}
+        @test typeof(p.config.poll) == UnitSpherePolling{typeof( Random.default_rng() )}
         @test p.status.optimization_status == DS.Unoptimized
         @test p.status.optimization_status_string == "Unoptimized"
         @test p.sense == DS.Min
         @test p.config.max_simultaneous_evaluations == 1
-        @test typeof(p.config.mesh) == DS.Mesh{T}
+        @test typeof(p.config.mesh) == DS.AnisotropicMesh{T}
 
         @test typeof(p.cache) == DS.PointCache{T}
         @test isempty(p.cache.costs)

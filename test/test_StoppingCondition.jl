@@ -4,7 +4,7 @@
         p = DSProblem(4)
         @test typeof(p.stoppingconditions[1]) == DS.IterationStoppingCondition
         @test typeof(p.stoppingconditions[2]) == DS.FunctionEvaluationStoppingCondition
-        @test typeof(p.stoppingconditions[3]) == DS.MeshPrecisionStoppingCondition{Float64}
+        @test typeof(p.stoppingconditions[3]) == DS.MeshPrecisionStoppingCondition{AnisotropicMesh{Float64},Float64}
         @test typeof(p.stoppingconditions[4]) == DS.PollPrecisionStoppingCondition{Float64}
 
         @test p.stoppingconditions[1].limit == 1000

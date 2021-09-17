@@ -19,11 +19,19 @@ mutable struct LTMADS{T} <: AbstractPoll
 
     LTMADS(;kwargs...) = LTMADS{Float64}(;kwargs...)
 
-    function LTMADS{T}(;maximal_basis=true) where T
+    function LTMADS{T}(;basis = :maximal) where T
         g = new()
         g.b = Dict{T, Vector{T}}()
         g.i = Dict{T, Int}()
-        g.maximal_basis=maximal_basis
+
+        if basis == :maximal
+            g.maximal_basis = true
+        elseif basis == :minimal
+            g.maximal_basis = false
+        else
+            error( "Unknown option for basis type" )
+        end
+
         return g
     end
 end
@@ -35,23 +43,20 @@ Generates columns and forms a basis matrix for direction generation.
 """
 function GenerateDirections(p::AbstractProblem, DG::LTMADS{T})::Matrix{T} where T
     B = LT_basis_generation(p.config.mesh, p.N, DG)
-    Dₖ = form_basis_matrix(p.N, B, DG.maximal_basis)
+    Dₖ = _form_basis_matrix(p.N, B, DG.maximal_basis)
 
     return Dₖ
 end
 
-function form_basis_matrix(N::Int, B::Matrix{T}, max_basis::Bool) where T
-    max_basis && return [B -B]
-
-    d = zeros(T, N)
-    for (i,_) in enumerate(d)
-        d[i] = -sum(B[i,:])
-    end
-
-    return [B d]
+function MeshUpdate!(::AnisotropicMesh, ::LTMADS{T}, ::IterationOutcome, ::Union{Vector,Nothing}) where T
+    error( "LTMADS is not compatible with the anisotropic mesh" )
 end
 
-function LT_basis_generation(m::Mesh, N::Int, DG::LTMADS{T}) where T
+function LT_basis_generation(::AnisotropicMesh, ::Int, ::LTMADS{T}) where T
+    error( "LTMADS is not compatible with the anisotropic mesh" )
+end
+
+function LT_basis_generation(m::IsotropicMesh, N::Int, DG::LTMADS{T}) where T
     b, i = b_l_generation(DG.b, DG.i, abs(m.l), N)
 
     L = L_generation(N, abs(m.l))

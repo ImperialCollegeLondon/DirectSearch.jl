@@ -72,8 +72,9 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
     DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
 
     function DSProblem{T}(N::Int;
-                          poll::AbstractPoll=LTMADS{T}(),
+                          poll::AbstractPoll=UnitSpherePolling(),
                           search::AbstractSearch=NullSearch(),
+                          mesh::AbstractMesh=AnisotropicMesh{T}(N),
                           objective::Union{Function,Nothing}=nothing,
                           initial_point::Vector=zeros(T, N),
                           iteration_limit::Int=1000,
@@ -86,7 +87,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
                           kwargs...
                          ) where T
 
-        p = new{T, Mesh{T}, typeof(search), typeof(poll), PointCache{T}}()
+        p = new{T, typeof(mesh), typeof(search), typeof(poll), PointCache{T}}()
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
@@ -96,7 +97,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
         p.sense = sense
 
-        p.config = Config{T}(N, poll, search, Mesh{T}(N);kwargs...)
+        p.config = Config{T}(N, poll, search, mesh;kwargs...)
 
         p.status = Status{T}()
         p.cache = PointCache{T}()
@@ -105,7 +106,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         p.stoppingconditions = AbstractStoppingCondition[
             IterationStoppingCondition(iteration_limit),
             FunctionEvaluationStoppingCondition(function_evaluation_limit),
-            MeshPrecisionStoppingCondition{T}(min_mesh_size),
+            MeshPrecisionStoppingCondition{typeof(mesh),T}(min_mesh_size),
             PollPrecisionStoppingCondition{T}(min_poll_size)
         ]
 
@@ -124,8 +125,6 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
     end
 end
 
-MeshUpdate!(p::DSProblem, result::IterationOutcome) =
-    MeshUpdate!(p.config.mesh, p.config.poll, result, p.status.success_direction)
 
 """
     SetMaxEvals(p::DSProblem, max::Bool=true)
