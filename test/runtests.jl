@@ -8,7 +8,7 @@ include("./test_Constraints.jl")
 include("./test_Core.jl")
 include("./test_StoppingCondition.jl")
 include("./test_Report.jl")
-include("./solve_tests.jl") #temporary disabled until fixed
+include("./solve_tests.jl")
 
 # Test the different methods for generating the poll directions
 @testset "Polling Methods" begin
