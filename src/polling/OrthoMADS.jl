@@ -87,7 +87,7 @@ end
 Generates columns and forms a basis matrix for direction generation.
 """
 function GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T} where T
-    o.init_run || init_orthomads(N, o)
+    DG.init_run || init_orthomads(p.N, DG)
 
     H = GenerateOMBasis(p.N, DG.t, DG.l)
     return _form_basis_matrix( p.N, H, DG.maximal_basis )

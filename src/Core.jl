@@ -107,7 +107,7 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
             IterationStoppingCondition(iteration_limit),
             FunctionEvaluationStoppingCondition(function_evaluation_limit),
             MeshPrecisionStoppingCondition{typeof(mesh),T}(min_mesh_size),
-            PollPrecisionStoppingCondition{T}(min_poll_size)
+            PollPrecisionStoppingCondition{typeof(mesh),T}(min_poll_size)
         ]
 
         p.x = nothing

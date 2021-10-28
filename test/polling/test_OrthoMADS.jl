@@ -6,30 +6,33 @@ using Test
 
     #Check that constructor defaults to parametric type Float64
     _om = OrthoMADS()
-    om = OrthoMADS{Float64,Int64}(3)
+    DS.init_orthomads(3, _om)
+
+    om = OrthoMADS{Float64,Int64}()
+    DS.init_orthomads(3, om)
+
     @test _om.Δᵖmin == om.Δᵖmin
     @test _om.t₀ == om.t₀
     @test _om.t == om.t
     @test _om.tmax == om.tmax
 
+    #Check that expected values are given for n=3
+    om = OrthoMADS{Float64,Int64}()
+    DS.init_orthomads(3, om)
 
-    #Check that expected values are given for n=5
     @test om.Δᵖmin == 1.0
     @test om.t == 5
     @test om.t₀ == 5
     @test om.tmax == 5
 
-    om = OrthoMADS{Float64,Int64}(5)
+    #Check that expected values are given for n=5
+    om = OrthoMADS{Float64,Int64}()
+    DS.init_orthomads(5, om)
 
-    #Check that expected values are given for n=11
     @test om.Δᵖmin == 1.0
     @test om.t == 11
     @test om.t₀ == 11
     @test om.tmax == 11
-
-    #Check that error is raised for negative and 0 valued n
-    @test_throws DomainError OrthoMADS{Float64,Int64}(0)
-    @test_throws DomainError OrthoMADS{Float64,Int64}(-1)
 end
 
 @testset "MeshUpdate" begin
@@ -157,6 +160,8 @@ end
         p = DSProblem(4;poll=OrthoMADS(), mesh=DS.IsotropicMesh())
         m = p.config.mesh
         o = p.config.poll
+
+        DS.init_orthomads(4, o)
 
         #=
         If the poll size is the smallest so far then:

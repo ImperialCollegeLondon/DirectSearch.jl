@@ -18,13 +18,21 @@ mutable struct PollPrecisionStoppingCondition{M<:AbstractMesh, T} <: AbstractSto
     end
 end
 
-function init_stoppingcondition(p::DSProblem, s::PollPrecisionStoppingCondition)
+function init_stoppingcondition(p::DSProblem, s::PollPrecisionStoppingCondition{IsotropicMesh{T}}) where T
+    # Nothing to do here
+end
+
+function init_stoppingcondition(p::DSProblem, s::PollPrecisionStoppingCondition{AnisotropicMesh{T}}) where T
     s.min_poll_sizes = map(δ_min -> δ_min > 0 ? δ_min : s.cont_min_poll_size, p.config.mesh.δ_min)
 end
 
 StoppingConditionStatus(::PollPrecisionStoppingCondition) = "Poll Precision limit"
 
-function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition)
+function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition{IsotropicMesh{T}}) where T
+    p.config.mesh.Δᵖ > s.cont_min_poll_size
+end
+
+function CheckStoppingCondition(p::DSProblem, s::PollPrecisionStoppingCondition{AnisotropicMesh{T}}) where T
     if p.config.mesh.only_granular
         p.config.mesh.l > -50
     else

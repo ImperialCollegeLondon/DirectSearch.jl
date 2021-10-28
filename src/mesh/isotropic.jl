@@ -58,9 +58,7 @@ end
 Generate a trial point around incumbent point `x`, using direction `d`.
 """
 function PollPointGeneration(x::Vector{T}, d::Vector{T}, m::IsotropicMesh{T})::Vector{T} where T
-    result = [x+(m.Δᵐ*d) for d in eachcol(dirs)]
-
-    return result
+    return x + (m.Δᵐ * d)
 end
 
 
