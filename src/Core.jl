@@ -312,7 +312,7 @@ end
 #Initialise solver
 function Setup(p)
     p.status.start_time = time()
-    _check_initial_point(p)
+    #_check_initial_point(p)
     MeshSetup!(p)
     _init_stoppingconditions(p)
     EvaluateInitialPoint(p)
@@ -609,6 +609,8 @@ end
 
 function _check_initial_point(p::DSProblem{T}) where T
     for i=1:p.N
+        @show p.user_initial_point[i]
+        @show p.granularity[i]
         if p.granularity[i] > 0 && (p.user_initial_point[i] / p.granularity[i]) % 1 != 0
             error("Initial value of variable with index $i is not an integer multiple of its granularity.")
         end
