@@ -3,9 +3,7 @@ using Distributed
 using SharedArrays
 
 export DSProblem, SetObjective, SetInitialPoint, SetVariableBound, SetMaxEvals, SetFullOutput,
-       SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity,
-       SetGranularities
-
+       SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity
 
 """
 	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(),
@@ -191,29 +189,56 @@ function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
     p.user_initial_point = x
 end
 
-"""
-    SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
-
-Set the granularity of the variable with index `i` to `g`.
-"""
-function SetGranularity(p::DSProblem{T}, index::Int, g::T) where T
-    1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
-    g >= 0 || error("Granularity has to be non-negative.")
-
-    p.granularity[index] = g
-end
 
 """
-    SetGranularities(p::DSProblem{T}, g::Vector{T}) where T
+    SetGranularity(p::DSProblem{T}, index::Int, granularity::T) where T
 
-Call [`SetGranularity`](@ref) for each variable. The vector `g` should contain the granularity 
-for each variable.
+Set the granularity of the variable with index `i` to `granularity`.
 """
-function SetGranularities(p::DSProblem{T}, g::Vector{T}) where T
-    size(g, 1) == p.N || error("Granularity vector dimensions don't match problem definition")
+SetGranularity(p::DSProblem{T}, index::Int, granularity::T) where T =
+    SetGranularity( p, Dict( index => granularity ) )
 
-    for i=1:p.N
-        SetGranularity(p, i, g[i])
+
+"""
+    SetGranularity(p::DSProblem{T}, granularities)
+
+Set the granularity of multiple variables. The granularities should be provided in `granularities`
+as a collection with `key => value` pairs, where the key is the variable index and the value
+is the granularity.
+
+# Examples
+```jldoctest
+julia> p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.25, 0.1, 1.0]);
+
+julia> granularities = Dict( 1 => 0.1, 2 => 0.2, 3 => 0.3 )
+Dict{Int64, Float64} with 3 entries:
+  2 => 0.2
+  3 => 0.3
+  1 => 0.1
+
+julia> SetGranularity(p, granularities)
+```
+
+A vector can also be used to set the granularity, with `granularities[index]` setting the granularity for the
+variable at `index` with the granularity `granularities[index]`.
+```jldoctest
+julia> p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.25, 0.1, 1.0]);
+
+julia> granularities = [0.1; 0.2; 0.3]
+3-element Vector{Float64}:
+ 0.1
+ 0.2
+ 0.3
+
+julia> SetGranularity(p, granularities)
+```
+"""
+function SetGranularity(p::DSProblem{T}, granularities) where T
+    for (index, gran) in pairs(granularities)
+        1 <= index <= p.N || error("Invalid variable index $index, should be in range 1 to $(p.N).")
+        gran >= 0 || error("Invalid granularity $gran, must be non-negative.")
+
+        p.granularity[index] = gran
     end
 end
 

@@ -73,9 +73,9 @@ If the granularity for a single variable is required to be defined, it can be se
 SetGranularity(p, i, 0.1)
 ```
 
-The same operation can be applied to all variables with `SetGranularities` (example for N=3):
+The same operation can be applied to multiple variables by passing a collection of `key => value` pairs to the `SetGranularity` function:
 ```julia
-SetGranularities(p, [1.0, 0.1, 0.01])
+SetGranularity(p, Dict( 1 => 0.1, 2 => 0.2 ))
 ```
 
 ### Constraints

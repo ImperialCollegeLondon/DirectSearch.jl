@@ -109,18 +109,35 @@ using Random
         end
 
         @testset "SetGranularity" begin
-            p = DSProblem{T}(3)
-            @test_throws ErrorException SetGranularity(p, 4, 3.0)
-            @test_throws ErrorException SetGranularity(p, 2, -3.0)
-            SetGranularity(p, 2, 3.0)
-            @test p.granularity == [0.0, 3.0, 0.0]
-        end
+            let p = DSProblem{T}(3)
+                @test_throws ErrorException SetGranularity(p, 4, 3.0)
+                @test_throws ErrorException SetGranularity(p, 2, -3.0)
+                SetGranularity(p, 2, 3.0)
+                @test p.granularity == [0.0, 3.0, 0.0]
+            end
 
-        @testset "SetGranularities" begin
-            p = DSProblem{T}(3)
-            @test_throws ErrorException SetGranularities(p, [1.0, 2.0, 3.0, 4.0])
-            SetGranularities(p, [1.0, 2.0, 3.0])
-            @test p.granularity == [1.0, 2.0, 3.0]
+            let p = DSProblem{T}(3)
+                SetGranularity(p, Dict( 2 => 3.0 ))
+                @test p.granularity == [0.0, 3.0, 0.0]
+            end
+
+            let p = DSProblem{T}(3)
+                SetGranularity(p, Dict( 2 => 3.0, 3 => 2.0 ))
+                @test p.granularity == [0.0, 3.0, 2.0]
+            end
+
+            let p = DSProblem{T}(3)
+                SetGranularity(p, [1.0; 2.0])
+                @test p.granularity == [1.0, 2.0, 0.0]
+            end
+
+            let p = DSProblem{T}(3)
+                @test_throws ErrorException SetGranularity(p, Dict( 2 => 3.0, 4 => 2.0 ))
+            end
+
+            let p = DSProblem{T}(3)
+                @test_throws ErrorException SetGranularity(p, Dict( 2 => -3.0 ))
+            end
         end
     end
 
@@ -219,13 +236,13 @@ using Random
     @testset "Granular problem" begin
         # Should not warn
         p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.3, 0.1, 1.0])
-        SetGranularities( p, [0.1; 0.1; 0.1] )
+        SetGranularity( p, [0.1; 0.1; 0.1] )
         SetIterationLimit(p, 1000) #Needed for setup to run
         DS.Setup(p)
 
         # Should warn on the setup that the initial point's 1st element isn't on the grid
         p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.25, 0.1, 1.0])
-        SetGranularities( p, [0.1; 0.1; 0.1] )
+        SetGranularity( p, [0.1; 0.1; 0.1] )
         SetIterationLimit(p, 1000) #Needed for setup to run
         @test_logs (:warn, "Initial point element 1 is not of the specified granularity. Rounding 0.25 to 0.2.") DS.Setup(p)
     end
