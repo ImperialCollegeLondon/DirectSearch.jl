@@ -4,26 +4,26 @@ using SharedArrays
 
 export DSProblem, SetObjective, SetInitialPoint, SetVariableRange,
        SetOpportunisticEvaluation, SetSense, SetVariableRanges, Optimize!,
-       SetIterationLimit, BumpIterationLimit, SetMaxEvals
+       SetIterationLimit, BumpIterationLimit, SetMaxEvals, SetUserParameters
 
 
 """
-	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(),
-                         search::AbstractSearch=NullSearch(),
-                         objective::Union{Function,Nothing}=nothing,
-                         initial_point::Vector=zeros(T, N),
-                         iteration_limit::Int=1000,
-                         )
+	DSProblem{T, UT}(N::Int; poll::AbstractPoll=LTMADS{T}(),
+                             search::AbstractSearch=NullSearch(),
+                             objective::Union{Function,Nothing}=nothing,
+                             initial_point::Vector=zeros(T, N),
+                             iteration_limit::Int=1000,
+                             )
 
-Return a problem definition for an `N` dimensional problem.
+Return a problem definition for an `N` dimensional problem using numbers of type `T`.
 
 `poll` and `search` specify the poll and search step algorithms to use. The default
 choices are (LTMADS)[@ref] and (NullSearch)[@ref] respectively.
 
-Note that if working with `Float64` (normally the case) then the type
-parameterisation can be ignored.
+The problem can contain user-defined parameters that are passed into every objective function
+evaluation. These parameters will be stored inside a field of type `UT`.
 """
-mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll, CT <: AbstractCache}
+mutable struct DSProblem{T, UT, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll, CT <: AbstractCache}
     #= Problem Definition =#
     objective::Function
     constraints::Constraints{T}
@@ -57,19 +57,20 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
     stoppingconditions::Vector{AbstractStoppingCondition}
 
-    DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
+    #= User parameters =#
+    user_params::Union{Nothing,UT}
 
-    function DSProblem{T}(N::Int;
-                          poll::AbstractPoll=LTMADS{T}(),
-                          search::AbstractSearch=NullSearch(),
-                          objective::Union{Function,Nothing}=nothing,
-                          initial_point::Vector=zeros(T, N),
-                          iteration_limit::Int=1000,
-                          sense::ProblemSense=Min,
-                          kwargs...
-                         ) where T
+    function DSProblem{T, UT}(N::Int;
+                              poll::AbstractPoll=LTMADS{T}(),
+                              search::AbstractSearch=NullSearch(),
+                              objective::Union{Function,Nothing}=nothing,
+                              initial_point::Vector=zeros(T, N),
+                              iteration_limit::Int=1000,
+                              sense::ProblemSense=Min,
+                              kwargs...
+                             ) where {T, UT}
 
-        p = new{T, Mesh{T}, typeof(search), typeof(poll), PointCache{T}}()
+        p = new{T, UT, Mesh{T}, typeof(search), typeof(poll), PointCache{T}}()
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
@@ -96,9 +97,35 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
             p.objective = objective
         end
 
+        p.user_params = nothing
+
         return p
     end
 end
+
+
+"""
+    DSProblem{T}(N::Int; kwargs...)
+
+Return a problem definition for an `N` dimensional problem using numbers of type `T` and
+user parameters of type `Vector{T}`.
+
+See [`DSProblem{T, UT}`](@ref) for the keyword arguments this constructor takes.
+"""
+function DSProblem{T}(N::Int; kwargs...) where T
+    DSProblem{T, Vector{T}}(N; kwargs...)
+end
+
+"""
+    DSProblem(N::Int; kwargs...)
+
+Return a problem definition for an `N` dimensional problem using Float64 numbers and a user parameter
+that is `Vector{Float64}`.
+
+See [`DSProblem{T, UT}`](@ref) for the keyword arguments this constructor takes.
+"""
+DSProblem(N::Int; kwargs...) = DSProblem{Float64, Vector{Float64}}(N; kwargs...)
+
 
 MeshUpdate!(p::DSProblem, result::IterationOutcome) =
     MeshUpdate!(p.config.mesh, p.config.poll, result)
@@ -160,6 +187,15 @@ function SetInitialPoint(p::DSProblem{T}, x::Vector{T}) where T
 end
 
 """
+    SetUserParameters(P::DSProblem{T, UT}, params::UT)
+
+Set the current user parameters in the problem `p` to be `params`.
+"""
+function SetUserParameters(p::DSProblem{T, UT}, params::UT) where {T, UT}
+    p.user_params = params
+end
+
+"""
     SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
 
 Set/unset opportunistic evaluation (enables by default).
@@ -179,11 +215,11 @@ function EvaluateInitialPoint(p::DSProblem)
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
         p.i = p.user_initial_point
-        p.i_cost = p.objective(p.user_initial_point)
+        p.i_cost = call_objective( p.objective, p.user_initial_point, p.user_params )
         CachePush(p, p.i, p.i_cost)
     elseif feasibility == Feasible
         p.x = p.user_initial_point
-        p.x_cost = p.objective(p.user_initial_point)
+        p.x_cost = call_objective( p.objective, p.user_initial_point, p.user_params )
         CachePush(p, p.x, p.x_cost)
     end
 end
@@ -384,11 +420,11 @@ function function_evaluation(p::DSProblem{T},
         costs = SharedArray{T,1}((length(trial_points)))
         #TODO try with threads, might be faster
         @sync @distributed for i in 1:length(trial_points)
-            costs[i] = p.objective(trial_points[i])
+            costs[i] = call_objective( p.objective, trial_points[i], p.user_params )
         end
         return costs
     else
-        return map(p.objective, trial_points)
+        return map(call_objective, p.objective, trial_points, p.user_params)
     end
 end
 
@@ -403,8 +439,20 @@ provide custom evaluation behaviour.
 function function_evaluation(p::DSProblem{T},
                              trial_point::Vector{T})::T where T
     CacheQuery(p, trial_point) && return CacheGet(p, trial_point)
-    cost = p.objective(trial_point)
+
+    cost = call_objective( p.objective, trial_point, p.user_params )
+
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
 	return cost
+end
+
+
+@inline function call_objective( func, point::Vector{T}, params )::T where T
+    # Pass in parameters if any are specified
+    if isa( params, Nothing )
+        return func( point )
+    else
+        return func( point, params )
+    end
 end
