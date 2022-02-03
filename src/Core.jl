@@ -3,32 +3,33 @@ using Distributed
 using SharedArrays
 
 export DSProblem, SetObjective, SetInitialPoint, SetVariableBound, SetMaxEvals, SetFullOutput,
-       SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity
+       SetOpportunisticEvaluation, SetSense, SetVariableBounds, Optimize!, SetGranularity,
+       SetUserParameters
 
 """
-	DSProblem{T}(N::Int; poll::AbstractPoll=LTMADS{T}(),
-                         search::AbstractSearch=NullSearch(),
-                         objective::Union{Function,Nothing}=nothing,
-                         initial_point::Vector=zeros(T, N),
-                         iteration_limit::Int=1000,
-                         function_evaluation_limit::Int=5000,
-                         sense::ProblemSense=Min,
-                         full_output::Bool=false,
-                         granularity::Vector=zeros(T, N),
-                         min_mesh_size::Union{T,Nothing}=nothing,
-                         min_poll_size::Union{T,Nothing}=nothing,
-                         kwargs...
-                         ) where T
+	DSProblem{T, UT}(N::Int; poll::AbstractPoll=LTMADS{T}(),
+                             search::AbstractSearch=NullSearch(),
+                             objective::Union{Function,Nothing}=nothing,
+                             initial_point::Vector=zeros(T, N),
+                             iteration_limit::Int=1000,
+                             function_evaluation_limit::Int=5000,
+                             sense::ProblemSense=Min,
+                             full_output::Bool=false,
+                             granularity::Vector=zeros(T, N),
+                             min_mesh_size::Union{T,Nothing}=nothing,
+                             min_poll_size::Union{T,Nothing}=nothing,
+                             kwargs...
+                             ) where T
 
-Return a problem definition for an `N` dimensional problem.
+Return a problem definition for an `N` dimensional problem using numbers of type `T`.
 
 `poll` and `search` specify the poll and search step algorithms to use. The default
 choices are [`LTMADS`](@ref) and [`NullSearch`](@ref) respectively.
 
-Note that if working with `Float64` (normally the case) then the type
-parameterisation can be ignored.
+The problem can contain user-defined parameters that are passed into every objective function
+evaluation. These parameters will be stored inside a field of type `UT`.
 """
-mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll, CT <: AbstractCache}
+mutable struct DSProblem{T, UT, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: AbstractMesh, ST <: AbstractSearch, PT <: AbstractPoll, CT <: AbstractCache}
     #= Problem Definition =#
     objective::Function
     constraints::Constraints{T}
@@ -67,25 +68,26 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
 
     full_output::Bool
 
-    DSProblem(N::Int;kwargs...) = DSProblem{Float64}(N; kwargs...)
+    #= User parameters =#
+    user_params::Union{Nothing,UT}
 
-    function DSProblem{T}(N::Int;
-                          poll::AbstractPoll=UnitSpherePolling(),
-                          search::AbstractSearch=NullSearch(),
-                          mesh::AbstractMesh=AnisotropicMesh{T}(N),
-                          objective::Union{Function,Nothing}=nothing,
-                          initial_point::Vector=zeros(T, N),
-                          iteration_limit::Int=1000,
-                          function_evaluation_limit::Int=5000,
-                          sense::ProblemSense=Min,
-                          full_output::Bool=false,
-                          granularity::Vector=zeros(T, N),
-                          min_mesh_size::Union{T,Nothing}=nothing,
-                          min_poll_size::Union{T,Nothing}=nothing,
-                          kwargs...
-                         ) where T
+    function DSProblem{T, UT}(N::Int;
+                              poll::AbstractPoll=UnitSpherePolling(),
+                              search::AbstractSearch=NullSearch(),
+                              mesh::AbstractMesh=AnisotropicMesh{T}(N),
+                              objective::Union{Function,Nothing}=nothing,
+                              initial_point::Vector=zeros(T, N),
+                              iteration_limit::Int=1000,
+                              function_evaluation_limit::Int=5000,
+                              sense::ProblemSense=Min,
+                              full_output::Bool=false,
+                              granularity::Vector=zeros(T, N),
+                              min_mesh_size::Union{T,Nothing}=nothing,
+                              min_poll_size::Union{T,Nothing}=nothing,
+                              kwargs...
+                             ) where {T, UT}
 
-        p = new{T, typeof(mesh), typeof(search), typeof(poll), PointCache{T}}()
+        p = new{T, UT, typeof(mesh), typeof(search), typeof(poll), PointCache{T}}()
 
         p.N = N
         p.user_initial_point = convert(Vector{T},initial_point)
@@ -118,11 +120,33 @@ mutable struct DSProblem{T, MT, ST, PT, CT} <: AbstractProblem{T} where {MT <: A
         end
 
         p.full_output = full_output
+        p.user_params = nothing
 
         return p
     end
 end
 
+"""
+    DSProblem{T}(N::Int; kwargs...)
+
+Return a problem definition for an `N` dimensional problem using numbers of type `T` and
+user parameters of type `Vector{T}`.
+
+See [`DSProblem{T, UT}`](@ref) for the keyword arguments this constructor takes.
+"""
+function DSProblem{T}(N::Int; kwargs...) where T
+    DSProblem{T, Vector{T}}(N; kwargs...)
+end
+
+"""
+    DSProblem(N::Int; kwargs...)
+
+Return a problem definition for an `N` dimensional problem using Float64 numbers and a user parameter
+that is `Vector{Float64}`.
+
+See [`DSProblem{T, UT}`](@ref) for the keyword arguments this constructor takes.
+"""
+DSProblem(N::Int; kwargs...) = DSProblem{Float64, Vector{Float64}}(N; kwargs...)
 
 """
     SetMaxEvals(p::DSProblem, max::Bool=true)
@@ -243,6 +267,15 @@ function SetGranularity(p::DSProblem{T}, granularities) where T
 end
 
 """
+    SetUserParameters(P::DSProblem{T, UT}, params::UT)
+
+Set the current user parameters in the problem `p` to be `params`.
+"""
+function SetUserParameters(p::DSProblem{T, UT}, params::UT) where {T, UT}
+    p.user_params = params
+end
+
+"""
     SetOpportunisticEvaluation(p::DSProblem; opportunistic::Bool=true)
 
 Set/unset opportunistic evaluation (enables by default).
@@ -269,11 +302,11 @@ function EvaluateInitialPoint(p::DSProblem)
         error("Initial point must be feasible")
     elseif feasibility == WeakInfeasible
         p.i = p.user_initial_point
-        p.i_cost = round(p.objective(p.user_initial_point), digits=p.config.cost_digits)
+        p.i_cost = round(call_objective( p.objective, p.user_initial_point, p.user_params ), digits=p.config.cost_digits)
         CachePush(p, p.i, p.i_cost)
     elseif feasibility == Feasible
         p.x = p.user_initial_point
-        p.x_cost = round(p.objective(p.user_initial_point), digits=p.config.cost_digits)
+        p.x_cost = round(call_objective( p.objective, p.user_initial_point, p.user_params ), digits=p.config.cost_digits)
         CachePush(p, p.x, p.x_cost)
     end
 
@@ -293,7 +326,7 @@ varies with a significantly different scale to the others.
 """
 function SetVariableBound(p::DSProblem{T}, index::Int, l::T, u::T) where T
     1 <= index <= p.N || error("Invalid variable index, should be in range 1 to $(p.N).")
-    
+
     p.lower_bounds[index] = isinf(l) ? nothing : l
     p.upper_bounds[index] = isinf(u) ? nothing : u
 end
@@ -307,7 +340,7 @@ a lower and upper bound for each variable.
 function SetVariableBounds(p::DSProblem{T}, l::Vector{T}, u::Vector{T}) where T
     size(l, 1) == p.N || error("Lower bound vector dimensions don't match problem definition")
     size(u, 1) == p.N || error("Upper bound vector dimensions don't match problem definition")
-    
+
     for i=1:p.N
         SetVariableBound(p, i, l[i], u[i])
     end
@@ -610,7 +643,9 @@ function function_evaluation(p::DSProblem{T},
         p.status.cache_hits += 1
         return (CacheGet(p, trial_point), true)
     end
-    cost = round(p.objective(trial_point), digits=p.config.cost_digits)
+    cost = call_objective( p.objective, trial_point, p.user_params )
+    cost = round(cost, digits=p.config.cost_digits)
+
     p.status.function_evaluations += 1
     CachePush(p, trial_point, cost)
 	return (cost, false)
@@ -626,7 +661,7 @@ function function_evaluation_parallel(p::DSProblem{T}, trial_point::Vector{T})::
         p.status.cache_hits += 1
         return (CacheGetParallel(p, trial_point), true)
     end
-    cost = p.objective(trial_point)
+    cost = call_objective( p.objective, trial_point, p.user_params )
     p.status.function_evaluations += 1
     CachePushParallel(p, trial_point, cost)
 	return (cost, false)
@@ -647,5 +682,15 @@ function _check_initial_point(p::DSProblem{T}) where T
         end
 
         p.user_initial_point[i] = initial_point
+    end
+end
+
+
+@inline function call_objective( func, point::Vector{T}, params )::T where T
+    # Pass in parameters if any are specified
+    if isa( params, Nothing )
+        return func( point )
+    else
+        return func( point, params )
     end
 end
