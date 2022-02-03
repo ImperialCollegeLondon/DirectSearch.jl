@@ -215,4 +215,18 @@ using Random
         DS.EvaluatePoint!(p, [[9.0,9.0,9.0], [8.0,8.0,8.0], [5.0,5.0,5.0], [11.0,11.0,11.0]])
         @test p.x == [9.0,9.0,9.0]
     end
+
+    @testset "Granular problem" begin
+        # Should not warn
+        p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.3, 0.1, 1.0])
+        SetGranularities( p, [0.1; 0.1; 0.1] )
+        SetIterationLimit(p, 1000) #Needed for setup to run
+        DS.Setup(p)
+
+        # Should warn on the setup that the initial point's 1st element isn't on the grid
+        p = DSProblem(3; objective=x->sum(x.^2), initial_point=[0.25, 0.1, 1.0])
+        SetGranularities( p, [0.1; 0.1; 0.1] )
+        SetIterationLimit(p, 1000) #Needed for setup to run
+        @test_logs (:warn, "Initial point element 1 is not of the specified granularity. Rounding 0.25 to 0.2.") DS.Setup(p)
+    end
 end

@@ -312,7 +312,7 @@ end
 #Initialise solver
 function Setup(p)
     p.status.start_time = time()
-    #_check_initial_point(p)
+    _check_initial_point(p)
     MeshSetup!(p)
     _init_stoppingconditions(p)
     EvaluateInitialPoint(p)
@@ -609,10 +609,18 @@ end
 
 function _check_initial_point(p::DSProblem{T}) where T
     for i=1:p.N
-        @show p.user_initial_point[i]
-        @show p.granularity[i]
-        if p.granularity[i] > 0 && (p.user_initial_point[i] / p.granularity[i]) % 1 != 0
-            error("Initial value of variable with index $i is not an integer multiple of its granularity.")
+        # Only round to the granular grid if there is a granularity defined
+        iszero( p.granularity[1] ) && continue
+
+        # Because of floating point round-off error, we can't do a direct comparison to check if the value
+        # is on the granular grid. Instead we just project it onto the grid and then warn if it changed
+        # the value at all.
+        initial_point = round( p.user_initial_point[i] / p.granularity[i] ) * p.granularity[i]
+
+        if !isapprox( p.user_initial_point[i], initial_point )
+            @warn "Initial point element $i is not of the specified granularity. Rounding $(p.user_initial_point[i]) to $initial_point."
         end
+
+        p.user_initial_point[i] = initial_point
     end
 end
