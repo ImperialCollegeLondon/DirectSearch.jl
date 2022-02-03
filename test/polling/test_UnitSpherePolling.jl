@@ -10,15 +10,8 @@ let poll = UnitSpherePolling()
 
     D = DirectSearch._sample_unit_sphere( Random.default_rng(), 5 )
 
-    Dact = [ 0.6756026398328625;
-             0.49139549679631706;
-             0.23948057804151515;
-             0.29760363963456393;
-             0.39518687376522355]
-
     @test size( D ) == (5, )
     @test norm( D ) ≈ 1.0
-    @test D ≈ Dact
 end
 
 # Test with a custom RNG
