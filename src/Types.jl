@@ -3,19 +3,9 @@
 File defines the abstract types used within the package.
 
 =#
-export SetObjective
 
 abstract type AbstractProblem{T} end
 
-"""
-    abstract type AbstractPollDirectionGenerator end
-
-Parent type for any type used for implementing a direction generator.
-
-Generally any direction generators should return vectors with unit length of
-one
-
-"""
 abstract type AbstractPoll end
 
 abstract type AbstractSearch end
@@ -26,25 +16,39 @@ abstract type AbstractSearch end
 Parent type of any struct implementing the construction of a mesh. To maintain
 compatibility with other aspects of the package, the naming convention for
 variables within structs must be followed. These respect the notation used
-within Audet & Dennis 2006.
+within Audet, Le Digabel & Tribes 2019.
 """
 abstract type AbstractMesh end
 
 abstract type AbstractConstraint end
 
+"""
+    abstract type AbstractCache end
+
+Parent type of any struct implementing the cache.
+"""
 abstract type AbstractCache end
 
+"""
+    abstract type AbstractStoppingCondition end
+
+Parent type of any struct implementing a stopping condition.
+"""
 abstract type AbstractStoppingCondition end
 
 @enum ProblemSense Min Max
 
-@enum OptimizationStatus Unoptimized PrecisionLimit IterationLimit OtherStoppingCondition
+@enum OptimizationStatus Unoptimized MeshPrecisionLimit PollPrecisionLimit IterationLimit FunctionEvaluationLimit RuntimeLimit OtherStoppingCondition
 
 """
-    Config(;sense::ProblemSense=Min,
-            opportunistic::Bool=false,
-            kwargs...
-          )
+    Config{FT}(N::Int,
+           poll::AbstractPoll,
+           search::AbstractSearch,
+           mesh::AbstractMesh=Mesh{FT}(N);
+           opportunistic::Bool=false,
+           cost_digits::Int=32,
+           kwargs...
+           ) where {FT<:AbstractFloat}
 
 Encapsulates configuration options for the solver, generally shouldn't
 be user-edited.
@@ -58,17 +62,21 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
     search::ST
 
     mesh::MT
-    meshscale::Vector{FT}
 
-    num_procs::Int
-    max_simultanious_evaluations::Int
+    num_threads::Int
+    max_simultaneous_evaluations::Int
+    constraint_cache_lock::ReentrantLock
+    cost_cache_lock::ReentrantLock
     opportunistic::Bool
+
+    cost_digits::Int
 
     function Config{FT}(N::Int,
                         poll::AbstractPoll,
                         search::AbstractSearch,
                         mesh::AbstractMesh=Mesh{FT}(N);
                         opportunistic::Bool=false,
+                        cost_digits::Int=32,
                         kwargs...
                        ) where {FT<:AbstractFloat}
         c = new{FT, typeof(mesh), typeof(search), typeof(poll)}()
@@ -77,19 +85,31 @@ mutable struct Config{FT<:AbstractFloat, MT<:AbstractMesh, ST<:AbstractSearch, P
         c.search = search
 
         c.mesh = mesh
-        c.meshscale = ones(N)
 
-        c.num_procs = nworkers()
-        c.max_simultanious_evaluations = 1
+        c.num_threads = Threads.nthreads()
+        c.max_simultaneous_evaluations = 1
         c.opportunistic = opportunistic
+
+        c.cost_digits = cost_digits
+
+        c.constraint_cache_lock = ReentrantLock()
+        c.cost_cache_lock = ReentrantLock()
 
         return c
     end
 end
 
-mutable struct Status
+"""
+    Status{T}() where T
+
+Holds the status information of the solver.
+"""
+mutable struct Status{T}
     function_evaluations::Int64
+    cache_hits::Int64
     iteration::Int64
+    directions::Union{Vector{Vector{T}}, Nothing}
+    success_direction::Union{Vector{T},Nothing}
 
     optimization_status::OptimizationStatus
     optimization_status_string::String
@@ -104,11 +124,14 @@ mutable struct Status
     start_time::Float64
     end_time::Float64
 
-    function Status()
+    function Status{T}() where T
         s = new()
 
         s.function_evaluations = 0
         s.iteration = 0
+        s.cache_hits = 0
+        s.directions = nothing
+        s.success_direction = nothing
         s.optimization_status_string = "Unoptimized"
         s.optimization_status = Unoptimized
 

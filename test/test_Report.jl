@@ -13,16 +13,15 @@
         @test "Search" in names
         @test "Poll" in names
         @test "Mesh" in names
-        @test "Mesh Scale" in names
         @test "Opportunistic" in names
-        @test "Number of processes" in names
+        @test "Number of threads" in names
         @test "Max simultanious evaluations" in names
 
         #just check that it doesn't crash
         @test typeof(DS.format(rc)) == String
     end
 
-    @testset "report_config" begin
+    @testset "report_status" begin
         rc = DS.report_status(p)
 
         @test rc.title == "Status"
@@ -54,6 +53,31 @@
         @test "Feasible Cost" in names
         @test "Infeasible Solution" in names
         @test "Infeasible Cost" in names
+
+        @test typeof(DS.format(rc)) == String
+    end
+
+    @testset "report_final" begin
+        rc = DS.report_final(p)
+
+        @test rc.title == "MADS Run Summary"
+
+        names = [e.first for e in rc.entries if e != nothing]
+
+        @test "Feasible Solution" in names
+        @test "Feasible Cost" in names
+        @test "Infeasible Solution" in names
+        @test "Infeasible Cost" in names
+
+        @test "Iterations" in names
+        @test "Function Evaluations" in names
+        @test "Cache hits" in names
+        @test "Optimization Status" in names
+
+        @test "Runtime" in names
+        @test "Search Time" in names
+        @test "Poll Time" in names
+        @test "Blackbox Evaluation Time" in names
 
         @test typeof(DS.format(rc)) == String
     end

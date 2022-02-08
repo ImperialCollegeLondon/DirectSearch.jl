@@ -6,18 +6,12 @@ Fully documenting every function is currently ongoing. Please raise an issue if 
 
 ## Core
 ```@docs
-DirectSearch.OptimizationStatus
 DirectSearch.EvaluateInitialPoint
 DirectSearch.EvaluatePoint!
-DirectSearch.function_evaluation(::DSProblem{T}, ::Vector{Vector{T}}) where T
-DirectSearch.function_evaluation(::DSProblem{T}, ::Vector{T}) where T
-DirectSearch.MeshUpdate!(::DSProblem, ::DirectSearch.IterationOutcome)
-DirectSearch.GetMeshSize
-DirectSearch.min_mesh_size(::DSProblem{Float64})
-DirectSearch.min_mesh_size(::DSProblem{T}) where T
-DirectSearch.AbstractMesh
-DirectSearch.Mesh
-DirectSearch.AbstractProblem
+DirectSearch.EvaluatePointSequential!
+DirectSearch.EvaluatePointParallel!
+DirectSearch.function_evaluation
+DirectSearch.function_evaluation_parallel
 ```
 
 ## Constraints
@@ -41,18 +35,31 @@ DirectSearch.ConstraintCollectionEvaluation(::DirectSearch.ConstraintCollection{
 DirectSearch.ConstraintCollectionEvaluation(::DirectSearch.ConstraintCollection{T,DirectSearch.ExtremeConstraint}, ::Vector{T}) where T
 ```
 
+## Mesh
+```@docs
+DirectSearch.AbstractMesh
+DirectSearch.MeshSetup!
+DirectSearch.MeshUpdate!
+DirectSearch.SetMeshParameters!
+DirectSearch.SetMeshSizeVector!
+DirectSearch.SetPollSizeVector!
+DirectSearch.SetRatioVector!
+DirectSearch.init_a_and_b!
+DirectSearch.get_poll_size_estimate
+```
+
 ## Poll
 ```@docs
 DirectSearch.Poll
-DirectSearch.AbstractPoll
 DirectSearch.GeneratePollPoints
 DirectSearch.GenerateDirections(::DSProblem)
+DirectSearch.SafePointGeneration
+DirectSearch.ScaleDirection
 ```
 
 ## Search
 ```@docs
 DirectSearch.Search
-DirectSearch.AbstractSearch
 DirectSearch.GenerateSearchPoints(::DSProblem{T}) where T
 DirectSearch.GenerateSearchPoints(::DSProblem{T}, ::RandomSearch) where T
 DirectSearch.GenerateSearchPoints(::DSProblem, ::NullSearch)
@@ -60,7 +67,6 @@ DirectSearch.GenerateSearchPoints(::DSProblem, ::NullSearch)
 
 ## LTMADS
 ```@docs
-DirectSearch.MeshUpdate!(::DirectSearch.Mesh, ::LTMADS, ::DirectSearch.IterationOutcome)
 DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::LTMADS{T}) where T
 DirectSearch.form_basis_matrix
 DirectSearch.LT_basis_generation
@@ -72,16 +78,8 @@ DirectSearch.B_generation
 
 ## OrthoMADS
 ```@docs
-DirectSearch.MeshUpdate!(::DirectSearch.Mesh, ::OrthoMADS, ::DirectSearch.IterationOutcome)
-DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS{T}) where T
-DirectSearch.GenerateDirections(::Int64, ::OrthoMADS)
-DirectSearch.GenerateOMBasis
-DirectSearch.Halton
-DirectSearch.HaltonEntry
-DirectSearch.HaltonCoefficient
-DirectSearch.AdjustedHalton
-DirectSearch.AdjustedHaltonFamily
-DirectSearch.bad_argmax
+DirectSearch.GenerateDirections(::DirectSearch.AbstractProblem, ::OrthoMADS)
+DirectSearch.GenerateDirectionsOnUnitSphere
 DirectSearch.HouseholderTransform
 ```
 

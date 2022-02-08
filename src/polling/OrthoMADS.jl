@@ -6,10 +6,11 @@ export OrthoMADS
 """
     OrthoMADS()
 
-Return an empty OrthoMADS object.
+Return an empty OrthoMADS object. `N` must match the dimension of the
+problem that this stage is being given to.
 
 OrthoMADS uses Halton sequences to generate an orthogonal basis of
-directios for the poll step. This is a deterministic process, unlike
+directiosn for the poll step. This is a deterministic process, unlike
 (`LTMADS`)[@ref].
 """
 mutable struct OrthoMADS{T,F} <: AbstractPoll
@@ -19,23 +20,36 @@ mutable struct OrthoMADS{T,F} <: AbstractPoll
     t::F
     tmax::F
     init_run::Bool
-    OrthoMADS() = OrthoMADS{Float64,Int64}()
-    function OrthoMADS{T,F}() where {T,F}
+    maximal_basis::Bool
+
+    function OrthoMADS{T,F}(; basis = :maximal) where {T,F}
         M = new()
         #Initialise as the Nth prime
         M.init_run = false
         M.l = 0
         M.Δᵖmin = 1.0
+
+        if basis == :maximal
+            M.maximal_basis = true
+        elseif basis == :minimal
+            M.maximal_basis = false
+        else
+            error( "Unknown option for basis type" )
+        end
+
         return M
     end
 end
 
-"""
-    MeshUpdate!(mesh::Mesh, o::OrthoMADS, result::IterationOutcome)
+OrthoMADS() = OrthoMADS{Float64,Int64}()
 
-Implements the OrthoMads update rules.
+
 """
-function MeshUpdate!(m::Mesh, o::OrthoMADS, result::IterationOutcome)
+    MeshUpdate!(m::IsotropicMesh, o::OrthoMADS, result::IterationOutcome, ::Union{Vector,Nothing})
+
+Implements the OrthoMads update rules for the Isotropic mesh.
+"""
+function MeshUpdate!(m::IsotropicMesh, o::OrthoMADS, result::IterationOutcome, ::Union{Vector,Nothing})
     if result == Unsuccessful
         m.l += 1
     elseif result == Dominating
@@ -44,8 +58,8 @@ function MeshUpdate!(m::Mesh, o::OrthoMADS, result::IterationOutcome)
         m.l = m.l
     end
 
-    #Note that this replicates the operation done in the MeshUpdate!(::Mesh) function,
-    #but it necessary for the internal logic.
+    # Note that this replicates the operation done in the MeshUpdate!(::IsotropicMesh) function,
+    # but it needs to be expanded for OrthoMADS
     m.Δᵐ = min(1, 4.0^(-m.l))
     m.Δᵖ = 2.0^(-m.l)
 
@@ -61,31 +75,35 @@ function MeshUpdate!(m::Mesh, o::OrthoMADS, result::IterationOutcome)
     end
 end
 
+function init_orthomads(N::Int64, o::OrthoMADS)
+    o.tmax = o.t = o.t₀ = prime(N)
+    o.init_run = true
+end
+
 
 """
     GenerateDirections(p::DSProblem{T}, DG::LTMADS{T})::Vector{Vector{T}}
 
 Generates columns and forms a basis matrix for direction generation.
 """
-(GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T}) where T =
-    GenerateDirections(p.N, DG)
+function GenerateDirections(p::AbstractProblem, DG::OrthoMADS{T})::Matrix{T} where T
+    DG.init_run || init_orthomads(p.N, DG)
 
-function init_orthomads(N::Int64, o::OrthoMADS)
-    o.tmax = o.t = o.t₀ = prime(N)
-    o.init_run = true
-end
-
-function GenerateDirections(N::Int64, o::OrthoMADS{T})::Matrix{T} where T
-    o.init_run || init_orthomads(N, o)
-    H = GenerateOMBasis(N, o.t, o.l)
-	return hcat(H, -H)
+    H = GenerateOMBasis(p.N, DG.t, DG.l)
+    return _form_basis_matrix( p.N, H, DG.maximal_basis )
 end
 
 function GenerateOMBasis(N::Int64, t::Int64, l::Int64)
-	h = Halton(N, t)
-	q = AdjustedHalton(h, N, l)
-	return HouseholderTransform(q)
+    h = Halton(N, t)
+    q = AdjustedHalton(h, N, l)
+    return _householder_transform(q)
 end
+
+
+#####################################################################################
+# Functions for generating the Halton sequence used when generating the OrthoMADS
+# directions
+#####################################################################################
 
 function Halton(N::Int64, t::Int64)
     p = map(prime, 1:N)
@@ -93,7 +111,7 @@ function Halton(N::Int64, t::Int64)
 end
 
 function HaltonEntry(p,t)
-    u = 0.0
+    u = 0
     a_r = HaltonCoefficient(p,t)
     for (r,a) in enumerate(a_r)
         u += a/(p^r) #note that the equation is a/p^r+1, but julia indexes from 1
@@ -102,11 +120,11 @@ function HaltonEntry(p,t)
 end
 
 function HaltonCoefficient(p,t)
-    t==0 && return Int[]
+    t==0 && return []
     #Maximum non-zero value of r
     r_max = floor(Int64, log(p, t))
     #Need to give values for 0:r_max
-    a = zeros(Int, r_max+1)
+    a = zeros(Int(r_max+1))
     t_local = t
     for r in r_max:-1:0
         t_local == 0 && break
@@ -132,9 +150,9 @@ function AdjustedHaltonFamily(halt)
     return q
 end
 
-#TODO use a better defined algorithm for this operation
-#(some kind of numerical line search?)
-function argmax(x, f::Function, lim; iter_lim = 15)
+# TODO use a better defined algorithm for this operation
+# (some kind of numerical line search?)
+function argmax(x, f, lim; iter_lim = 15)
     bump = 1
     iter = 1
 
@@ -149,10 +167,3 @@ function argmax(x, f::Function, lim; iter_lim = 15)
     end
     return x
 end
-
-function HouseholderTransform(q)
-    nq = norm(q)
-    v = q./nq
-    return nq^2 .* (I - 2*v*v')
-end
-

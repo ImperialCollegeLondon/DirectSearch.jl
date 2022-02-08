@@ -3,19 +3,24 @@
     @testset "Defaults" begin
         p = DSProblem(4)
         @test typeof(p.stoppingconditions[1]) == DS.IterationStoppingCondition
-        @test typeof(p.stoppingconditions[2]) == DS.MeshPrecisionStoppingCondition
-        @test p.stoppingconditions[1].limit == 1000
+        @test typeof(p.stoppingconditions[2]) == DS.FunctionEvaluationStoppingCondition
+        @test typeof(p.stoppingconditions[3]) == DS.MeshPrecisionStoppingCondition{AnisotropicMesh{Float64},Float64}
+        @test typeof(p.stoppingconditions[4]) == DS.PollPrecisionStoppingCondition{AnisotropicMesh{Float64},Float64}
 
-        p = DSProblem(4; iteration_limit=100)
+        @test p.stoppingconditions[1].limit == 1000
+        @test p.stoppingconditions[2].limit == 5000
+
+        p = DSProblem(4; iteration_limit=100, function_evaluation_limit=500)
         @test p.stoppingconditions[1].limit == 100
+        @test p.stoppingconditions[2].limit == 500
     end
 
     @testset "AddStoppingCondition" begin
         p = DSProblem(4)
         
-        test_stopping_cond = DS.IterationStoppingCondition(1234)
+        test_stopping_cond = DS.RuntimeStoppingCondition(1234)
         DS.AddStoppingCondition(p, test_stopping_cond)
-        @test p.stoppingconditions[3].limit == 1234
+        @test p.stoppingconditions[5].limit == 1234
     end
 
     @testset "_check_stoppingconditions" begin
@@ -51,6 +56,9 @@
         DS.setstatus(p, test_sc())
         @test p.status.optimization_status_string == "test status message"
 
+        DS.MeshSetup!(p)
+        DS._init_stoppingconditions(p)
+
         #First false sc reached in the array is the reported status 
         DS.AddStoppingCondition(p, test_sc())
         @test DS._check_stoppingconditions(p) == false
@@ -64,9 +72,15 @@
         struct another_test_sc <: DS.AbstractStoppingCondition end
         DS.CheckStoppingCondition(p::DSProblem, s::another_test_sc) = false
 
-        @test DS.StoppingConditionStatus(another_test_sc()) == "Unknown stopping condition status"
+        stop_cond = another_test_sc()
+
+        @test DS.StoppingConditionStatus(stop_cond) == "Unknown stopping condition status"
         p = DSProblem(4)
-        DS.AddStoppingCondition(p, another_test_sc())
+        DS.AddStoppingCondition(p, stop_cond)
+
+        DS.MeshSetup!(p)
+        DS._init_stoppingconditions(p)
+
         DS._check_stoppingconditions(p)
         @test p.status.optimization_status == DS.OtherStoppingCondition
         @test p.status.optimization_status_string == "Unknown stopping condition status"
