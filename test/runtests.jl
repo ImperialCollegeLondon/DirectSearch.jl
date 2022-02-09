@@ -22,3 +22,6 @@ end
 @testset "Mesh" begin
     @safetestset "Anisotropic Mesh" begin include( "./mesh/test_anisotropic.jl" ) end
 end
+
+# Run the Aqua tests to check other parts of the package
+@safetestset "Aqua" begin include("./aqua_test.jl") end
