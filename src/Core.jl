@@ -39,8 +39,12 @@ mutable struct DSProblem{T, UT, MT, ST, PT, CT} <: AbstractProblem{T} where {MT 
     granularity::Vector{T}
     lower_bounds::Vector{Union{T, Nothing}}
     upper_bounds::Vector{Union{T, Nothing}}
-    #Barrier threshold
-    h_max::T
+
+    # Parameters associated with the progressive barrier
+    h_max::T                  # Barrier threshold
+    frame_center_trigger::T   # The tolerance to use when choosing the primary poll center
+    num_secondary_points::Int # The number of points to search around the secondary poll center
+
     sense::ProblemSense
 
     #TODO incumbent points should be sets not points, therefore change to vectors of points
@@ -114,6 +118,9 @@ mutable struct DSProblem{T, UT, MT, ST, PT, CT} <: AbstractProblem{T} where {MT 
         p.x_cost = nothing
         p.i = nothing
         p.i_cost = nothing
+
+        p.frame_center_trigger = 10
+        p.num_secondary_points = min(N, 2)
 
         if objective != nothing
             p.objective = objective
