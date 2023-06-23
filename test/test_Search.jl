@@ -9,14 +9,14 @@
     @testset "RandomSearch" begin
         N = 3
         c = generate_rand_cache(N, 10)
-        d = 1.0
+        d = ones(3)
         s = DS.RandomSearch(10)
-        
+
         points = DS.RandomPointsFromCache(N, c, d, s)
 
         for point in points
             mesh = keys(c.costs)
-            closeness = [norm(point - m_point) ≈ d for m_point in mesh]
+            closeness = [norm(point - m_point) ≈ norm(d) for m_point in mesh]
             @test true in closeness
         end
     end

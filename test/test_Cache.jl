@@ -66,9 +66,9 @@ end
     @testset "CacheRandomSample" begin
         @test DS.CacheRandomSample(c, 0) == []
         @test DS.CacheRandomSample(c, 1)[1] in c.order
-        @test length(DS.CacheRandomSample(c, 1)) == 1 
+        @test length(DS.CacheRandomSample(c, 1)) == 1
         @test all(p in c.order for p in DS.CacheRandomSample(c, 10))
-        @test length(DS.CacheRandomSample(c, 2)) == 2 
+        @test length(DS.CacheRandomSample(c, 2)) == 2
     end
 
     @testset "CacheInitialPoint" begin
@@ -80,15 +80,15 @@ end
         @test DS.CacheGetRange(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,3.0]]) == [2112.0, 6.0]
         @test DS.CacheGetRange(c, []) == []
         @test_throws KeyError DS.CacheGetRange(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,4.0]])
-        
+
     end
 
     @testset "CacheFilter" begin
-        @test DS.CacheFilter(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,3.0], [7.0,8.0,9.0]]) == 
+        @test DS.CacheFilter(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,3.0], [7.0,8.0,9.0]]) ==
               ([[4.21, 45.0, 1234321.0], [1.0,2.0,3.0]], [[7.0,8.0,9.0]])
-        @test DS.CacheFilter(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,3.0]]) == 
+        @test DS.CacheFilter(c, [[4.21, 45.0, 1234321.0], [1.0,2.0,3.0]]) ==
               ([[4.21, 45.0, 1234321.0], [1.0,2.0,3.0]], [])
-        @test DS.CacheFilter(c, [[4.22, 68.0, -1114754.0], [8.0,1.0,2.0]]) == 
+        @test DS.CacheFilter(c, [[4.22, 68.0, -1114754.0], [8.0,1.0,2.0]]) ==
               ([], [[4.22, 68.0, -1114754.0], [8.0,1.0,2.0]])
         @test DS.CacheFilter(c, []) == ([], [])
 

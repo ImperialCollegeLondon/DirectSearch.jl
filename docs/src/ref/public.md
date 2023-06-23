@@ -8,12 +8,13 @@ DSProblem
 SetObjective
 SetInitialPoint
 Optimize!
-SetIterationLimit
-SetVariableRange
-SetVariableRanges
-BumpIterationLimit
-ProblemSense
+SetVariableBound
+SetVariableBounds
+SetGranularity
+SetGranularities
+SetSense
 SetMaxEvals
+SetOpportunisticEvaluation
 ```
 ## Search Stages
 ```@docs
@@ -39,12 +40,29 @@ DefaultExtremeRef
 DefaultProgressiveRef
 ```
 
-## Reporting
-**Many functions in this section are out of date, do not rely on them to give accurate information**
+## Cache
 ```@docs
-DirectSearch.report_finish
-DirectSearch.report
-DirectSearch.export_points
-DirectSearch.ReportConstraints(::DSProblem)
-DirectSearch.ReportConstraintCollection
+CacheLoadJSON
+CacheSaveJSON
+CacheLoadJLD2
+CacheSaveJLD2
+```
+
+## Stopping Conditions
+```@docs
+AddStoppingCondition
+SetIterationLimit
+BumpIterationLimit
+SetFunctionEvaluationLimit
+BumpFunctionEvaluationLimit
+SetMinimumMeshSize
+SetMinimumPollSize
+```
+
+## Reporting
+```@docs
+ReportConfig
+ReportStatus
+ReportProblem
+Base.print
 ```
