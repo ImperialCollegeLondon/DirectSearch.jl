@@ -1,5 +1,7 @@
 using Documenter, DirectSearch
 
+DocMeta.setdocmeta!(DirectSearch, :DocTestSetup, :(using DirectSearch); recursive=true)
+
 makedocs(;
     modules=[DirectSearch],
     format=Documenter.HTML(),
@@ -20,8 +22,7 @@ makedocs(;
     ],
     repo="https://github.com/ImperialCollegeLondon/DirectSearch.jl/blob/{commit}{path}#L{line}",
     sitename="DirectSearch.jl",
-    authors="EdwardStables <edward.stables1198@gmail.com>, Lukas Baliunas <lb4418@imperial.ac.uk>",
-    assets=String[],
+    authors="Ian McInerney <i.mcinerney17@imperial.ac.uk, Edward Stables <edward.stables1198@gmail.com>, Lukas Baliunas <lb4418@imperial.ac.uk>",
 )
 
 deploydocs(;
