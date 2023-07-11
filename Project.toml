@@ -1,9 +1,8 @@
 name = "DirectSearch"
 uuid = "9d7617aa-e122-4445-bdd0-98866dcb605d"
-license = "MIT"
-authors = ["Ian McInerney <i.mcinerney17@imperial.ac.uk",
-           "Edward Stables <edward.stables1198@gmail.com>"]
 keywords = ["numerical-optimization", "solver", "derivative-free", "direct-search"]
+license = "MIT"
+authors = ["Ian McInerney <i.mcinerney17@imperial.ac.uk", "Edward Stables <edward.stables1198@gmail.com>"]
 version = "0.1.0"
 
 [deps]
