@@ -3,9 +3,9 @@
 DirectSearch.jl provides a framework for the implementation of direct search algorithms, currently focusing on the Mesh Adaptive Direct Search (MADS) family. These are derivative free, black box algorithms, meaning that no analytical knowledge of the objective function or any constraints are needed. This package provides the core MADS algorithms (LTMADS, OrthoMADS, granular variables and dynamic scaling, as well as progressive and extreme barrier constraints), and is designed to allow custom algorithms to be easily added.
 
 ## Install
-To install the package, use the following command
+This package can be installed from the Julia General Registry by running:
 ```
-pkg> add https://github.com/ImperialCollegeLondon/DirectSearch.jl
+pkg> add DirectSearch
 ```
 
 And import as with any Julia package:
